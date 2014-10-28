@@ -2,8 +2,8 @@ apply plugin: 'java'
 apply plugin: 'maven'
 apply plugin: 'signing'
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
 group = 'net.dongliu'
 version = '1.1.0'
 
@@ -14,7 +14,8 @@ repositories {
 dependencies {
     compile 'org.apache.httpcomponents:httpclient:4.3.5',
             'commons-io:commons-io:2.4',
-            'net.dongliu.commons:commons-lang:1.0.9'
+            'net.dongliu:commons-lang:1.1.0',
+            'org.slf4j:slf4j-api:1.7.7'
     testCompile 'junit:junit:4.+'
 }
 

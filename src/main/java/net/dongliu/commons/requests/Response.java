@@ -11,17 +11,17 @@ import java.util.List;
  * @author Dong Liu
  */
 public class Response<T> {
-    private int code;
+    private int statusCode;
     private List<Pair<String, String>> headers = Collections.emptyList();
 
     private T body;
 
-    public int getCode() {
-        return code;
+    public int getStatusCode() {
+        return statusCode;
     }
 
-    public void setCode(int code) {
-        this.code = code;
+    public void setStatusCode(int statusCode) {
+        this.statusCode = statusCode;
     }
 
     public List<Pair<String, String>> getHeaders() {
