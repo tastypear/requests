@@ -41,7 +41,7 @@ public class RequestBuilder<T> {
     private boolean gzip;
     private boolean checkSsl = true;
 
-    protected RequestBuilder() {
+    RequestBuilder() {
     }
 
     public Requests<T> build() {
@@ -275,7 +275,7 @@ public class RequestBuilder<T> {
     /**
      * set transformer. default is String transformer
      */
-    protected RequestBuilder<T> transformer(ResponseConverter<T> transformer) {
+    RequestBuilder<T> transformer(ResponseConverter<T> transformer) {
         this.transformer = transformer;
         return this;
     }

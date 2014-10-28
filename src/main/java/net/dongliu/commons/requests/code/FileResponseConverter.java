@@ -38,15 +38,11 @@ public class FileResponseConverter implements ResponseConverter {
      * @return true if success
      */
     @Override
-    public Boolean convert(HttpEntity httpEntity) {
-        try {
-            try (InputStream in = httpEntity.getContent()) {
-                try (OutputStream out = new FileOutputStream(this.file)) {
-                    IOUtils.copy(in, out);
-                }
+    public Boolean convert(HttpEntity httpEntity) throws IOException {
+        try (InputStream in = httpEntity.getContent()) {
+            try (OutputStream out = new FileOutputStream(this.file)) {
+                IOUtils.copy(in, out);
             }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
         return true;
     }

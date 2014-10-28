@@ -1,6 +1,5 @@
 package net.dongliu.commons.requests.code;
 
-import net.dongliu.commons.lang.Charsets;
 import org.apache.http.HttpEntity;
 
 import java.io.IOException;
@@ -12,7 +11,7 @@ import java.io.IOException;
  */
 public interface ResponseConverter<T> {
 
-    static ResponseConverter<String> string = new StringResponseConverter(Charsets.UTF_8);
+    static ResponseConverter<String> string = new StringResponseConverter(null);
 
     static ResponseConverter<byte[]> bytes = new BytesResponseConverter();
 

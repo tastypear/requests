@@ -13,11 +13,7 @@ import java.io.IOException;
 public class BytesResponseConverter implements ResponseConverter<byte[]> {
 
     @Override
-    public byte[] convert(HttpEntity httpEntity) {
-        try {
-            return (EntityUtils.toByteArray(httpEntity));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public byte[] convert(HttpEntity httpEntity) throws IOException {
+        return (EntityUtils.toByteArray(httpEntity));
     }
 }

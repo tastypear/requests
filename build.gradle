@@ -5,7 +5,7 @@ apply plugin: 'signing'
 sourceCompatibility = 1.7
 targetCompatibility = 1.7
 group = 'net.dongliu'
-version = '1.1.0'
+version = '1.1.1'
 
 repositories {
     mavenCentral()

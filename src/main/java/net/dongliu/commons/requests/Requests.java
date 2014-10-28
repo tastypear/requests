@@ -1,7 +1,9 @@
 package net.dongliu.commons.requests;
 
+import net.dongliu.commons.lang.Charsets;
 import net.dongliu.commons.lang.collection.Pair;
 import net.dongliu.commons.requests.code.ResponseConverter;
+import net.dongliu.commons.requests.code.StringResponseConverter;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -14,6 +16,7 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -37,8 +40,8 @@ public class Requests<T> {
     // if verify certificate of https site
     private final boolean checkSsl;
 
-    protected Requests(HttpRequestBase request, RequestConfig config, ResponseConverter<T> transformer,
-                       CredentialsProvider provider, boolean gzip, boolean checkSsl) {
+    Requests(HttpRequestBase request, RequestConfig config, ResponseConverter<T> transformer,
+             CredentialsProvider provider, boolean gzip, boolean checkSsl) {
         this.request = request;
         this.config = config;
         this.transformer = transformer;
@@ -52,7 +55,7 @@ public class Requests<T> {
      *
      * @return
      */
-    public Response<T> execute() throws IOException {
+    Response<T> execute() throws IOException {
         request.setConfig(config);
         if (gzip) {
             request.addHeader(Header.Accept_Encoding, Header.Accept_Encoding_COMPRESS);
@@ -99,16 +102,34 @@ public class Requests<T> {
     }
 
     /**
-     * get one requests client for return string result.
+     * get one requests client for return string result, use default encoding.
      */
-    public static RequestBuilder<String> stringClient() {
+    public static RequestBuilder<String> string() {
         return client(ResponseConverter.string);
+    }
+
+    /**
+     * get one requests client for return string result.
+     *
+     * @param charSet the encoding to use if not found in response header
+     */
+    public static RequestBuilder<String> string(Charset charSet) {
+        return client(new StringResponseConverter(charSet));
+    }
+
+    /**
+     * get one requests client for return string result.
+     *
+     * @param charSet the encoding to use if not found in response header
+     */
+    public static RequestBuilder<String> string(String charSet) {
+        return string(Charset.forName(charSet));
     }
 
     /**
      * get one requests client for return byte array result.
      */
-    public static RequestBuilder<byte[]> bytesClient() {
+    public static RequestBuilder<byte[]> bytes() {
         return client(ResponseConverter.bytes);
     }
 

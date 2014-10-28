@@ -12,6 +12,7 @@ import java.nio.charset.Charset;
  * @author Dong Liu
  */
 public class StringResponseConverter implements ResponseConverter<String> {
+    // can be null
     private final Charset charset;
 
     public StringResponseConverter(Charset charset) {
@@ -19,11 +20,7 @@ public class StringResponseConverter implements ResponseConverter<String> {
     }
 
     @Override
-    public String convert(HttpEntity httpEntity) {
-        try {
-            return EntityUtils.toString(httpEntity);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public String convert(HttpEntity httpEntity) throws IOException {
+        return EntityUtils.toString(httpEntity, charset);
     }
 }
