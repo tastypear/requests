@@ -6,7 +6,7 @@ import org.apache.http.util.EntityUtils;
 import java.io.IOException;
 
 /**
- * http handler convert http response body to bytes
+ * http handler convert http response data to bytes
  *
  * @author Dong Liu
  */

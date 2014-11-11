@@ -6,16 +6,23 @@ import net.dongliu.commons.requests.code.ResponseConverter;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CookieStore;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.*;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.InputStreamEntity;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.http.message.BasicNameValuePair;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
@@ -35,11 +42,20 @@ public class RequestBuilder<T> {
     private List<Parameter> params = new ArrayList<>();
     private List<Header> headers = new ArrayList<>();
     private ResponseConverter<T> transformer;
-    private RequestConfig.Builder configBuilder = RequestConfig.custom()
-            .setConnectTimeout(10_000).setSocketTimeout(10_000);
+    private RequestConfig.Builder configBuilder = RequestConfig.custom().setConnectTimeout(10_000)
+            .setSocketTimeout(10_000);
     private CredentialsProvider provider;
     private boolean gzip;
-    private boolean checkSsl = true;
+    // if check ssl certificate
+    private boolean verify = true;
+    // send cookie values
+    private CookieStore cookieStore;
+    private boolean allowRedirects = true;
+    private String[] cert;
+    // http request body from inputStream
+    private InputStream in;
+    // http multi part post request files
+    private List<MultiPart> files;
 
     RequestBuilder() {
     }
@@ -63,6 +79,8 @@ public class RequestBuilder<T> {
                 request = buildHttpDelete();
                 break;
             case OPTIONS:
+                request = buildHttpOptions();
+                break;
             case TRACE:
             case CONNECT:
             default:
@@ -74,7 +92,7 @@ public class RequestBuilder<T> {
         }
 
         return new Requests<>(request, configBuilder.build(), transformer, provider, gzip,
-                checkSsl);
+                verify, cookieStore, allowRedirects);
     }
 
 
@@ -97,16 +115,44 @@ public class RequestBuilder<T> {
         HttpPut httpPut = new HttpPut(uri);
         if (body != null) {
             httpPut.setEntity(new ByteArrayEntity(body));
+        } else if (in != null) {
+            httpPut.setEntity(new InputStreamEntity(in));
         }
         return httpPut;
     }
 
 
     private HttpPost buildHttpPost() {
-        if (body != null) {
+        int bodyCount = 0;
+        if (files != null) bodyCount++;
+        if (body != null) bodyCount++;
+        if (in != null) bodyCount++;
+        if (bodyCount > 1) {
+            //can not set both
+            throw new RuntimeException("body and in cannot both be set");
+        }
+
+        if (files != null) {
+            MultipartEntityBuilder entityBuilder = MultipartEntityBuilder.create();
+            for (Parameter parameter : params) {
+                entityBuilder.addTextBody(parameter.getName(), String.valueOf(parameter.getValue()));
+            }
+            for (MultiPart f : files) {
+                entityBuilder.addBinaryBody(f.getFileName(), f.getFile(), ContentType.create(f.getMeta()),
+                        f.getFileName());
+            }
+            HttpPost httpPost = new HttpPost(url);
+            httpPost.setEntity(entityBuilder.build());
+            return httpPost;
+        } else if (body != null) {
             URI uri = buildFullUrl();
             HttpPost httpPost = new HttpPost(uri);
             httpPost.setEntity(new ByteArrayEntity(body));
+            return httpPost;
+        } else if (in != null) {
+            URI uri = buildFullUrl();
+            HttpPost httpPost = new HttpPost(uri);
+            httpPost.setEntity(new InputStreamEntity(in));
             return httpPost;
         } else {
             HttpPost httpPost = new HttpPost(url);
@@ -135,6 +181,11 @@ public class RequestBuilder<T> {
     private HttpRequestBase buildHttpDelete() {
         URI uri = buildFullUrl();
         return new HttpDelete(uri);
+    }
+
+    private HttpRequestBase buildHttpOptions() {
+        URI uri = buildFullUrl();
+        return new HttpOptions(uri);
     }
 
     // build full url with parameters
@@ -233,20 +284,28 @@ public class RequestBuilder<T> {
     }
 
     /**
-     * set http body data for Post/Put requests
+     * set http data data for Post/Put requests
      *
-     * @param body the data to post
+     * @param data the data to post
      */
-    public RequestBuilder<T> body(byte[] body) {
-        this.body = body;
+    public RequestBuilder<T> data(byte[] data) {
+        this.body = data;
         return this;
     }
 
     /**
-     * set http body with string
+     * set http data from inputStream for Post/Put requests
      */
-    public RequestBuilder<T> body(String body, Charset charset) {
-        return body(body.getBytes(charset));
+    public RequestBuilder<T> data(InputStream in) {
+        this.in = in;
+        return this;
+    }
+
+    /**
+     * set http data with text
+     */
+    public RequestBuilder<T> data(String body, Charset charset) {
+        return data(body.getBytes(charset));
     }
 
     private RequestBuilder<T> method(Method method) {
@@ -281,18 +340,18 @@ public class RequestBuilder<T> {
     }
 
     /**
-     * set socket connect timeout in milliseconds. default is 10_000
+     * set socket connect and read timeout in milliseconds. default is 10_000
      */
-    public RequestBuilder<T> connectTimeout(int timeout) {
-        configBuilder.setConnectTimeout(timeout);
+    public RequestBuilder<T> timeout(int timeout) {
+        configBuilder.setConnectTimeout(timeout).setSocketTimeout(timeout);
         return this;
     }
 
     /**
-     * set socket read timeout in milliseconds. default is 10_000
+     * set socket connect and read timeout in milliseconds. default is 10_000
      */
-    public RequestBuilder<T> socketTimeout(int timeout) {
-        configBuilder.setSocketTimeout(timeout);
+    public RequestBuilder<T> timeout(int connectTimeout, int socketTimeout) {
+        configBuilder.setConnectTimeout(connectTimeout).setSocketTimeout(socketTimeout);
         return this;
     }
 
@@ -304,16 +363,11 @@ public class RequestBuilder<T> {
      *     http://username:password@127.0.0.1:7890/
      * </pre>
      */
-    public RequestBuilder<T> proxy(String proxy) {
+    public RequestBuilder<T> proxy(String proxy) throws URISyntaxException {
         if (proxy == null) {
             return null;
         }
-        URI uri;
-        try {
-            uri = new URI(proxy);
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
+        URI uri = new URI(proxy);
         String userInfo = uri.getUserInfo();
         if (userInfo != null) {
             String[] items = userInfo.split(":");
@@ -330,18 +384,83 @@ public class RequestBuilder<T> {
     }
 
     /**
-     * send gzip requests. default false
+     * if send gzip requests. default false
      */
-    public RequestBuilder<T> enableGzip() {
-        this.gzip = true;
+    public RequestBuilder<T> gzip(boolean gzip) {
+        this.gzip = gzip;
         return this;
     }
 
     /**
      * disable ssl check for https requests
      */
-    public RequestBuilder<T> disableSslVerify() {
-        this.checkSsl = false;
+    public RequestBuilder<T> verify(boolean verify) {
+        this.verify = verify;
+        return this;
+    }
+
+    /**
+     * set http basic auth info
+     */
+    public RequestBuilder<T> auth(String userName, String password) {
+        CredentialsProvider provider = new BasicCredentialsProvider();
+        UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(userName, password);
+        provider.setCredentials(AuthScope.ANY, credentials);
+        this.provider = provider;
+        return this;
+    }
+
+    /**
+     * add cookies
+     */
+    public RequestBuilder<T> cookies(Map<String, String> cookies) {
+        if (this.cookieStore == null) {
+            this.cookieStore = new BasicCookieStore();
+        }
+        for (Map.Entry<String, String> entry : cookies.entrySet()) {
+            BasicClientCookie cookie = new BasicClientCookie(entry.getKey(), entry.getValue());
+            cookie.setPath("/");
+            cookieStore.addCookie(cookie);
+        }
+        return this;
+    }
+
+    /**
+     * add cookie
+     */
+    public RequestBuilder<T> cookie(String name, String value) {
+        if (this.cookieStore == null) {
+            this.cookieStore = new BasicCookieStore();
+        }
+        BasicClientCookie cookie = new BasicClientCookie(name, value);
+        cookie.setPath("/");
+        cookieStore.addCookie(cookie);
+        return this;
+    }
+
+    /**
+     * if follow redirect
+     */
+    public RequestBuilder<T> allowRedirects(boolean allowRedirects) {
+        this.allowRedirects = allowRedirects;
+        return this;
+    }
+
+    /**
+     * set cert path
+     * TODO: to be implemented
+     */
+    public RequestBuilder<T> cert(String... cert) {
+        throw new UnsupportedOperationException();
+//        this.cert = cert;
+//        return this;
+    }
+
+    /**
+     * send multi part requests
+     */
+    public RequestBuilder<T> files(List<MultiPart> files) {
+        this.files = files;
         return this;
     }
 }

@@ -5,7 +5,7 @@ import org.apache.http.HttpEntity;
 import java.io.IOException;
 
 /**
- * interface to trans body to result
+ * interface to trans data to result
  *
  * @author Dong Liu
  */
