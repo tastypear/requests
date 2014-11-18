@@ -1,13 +1,13 @@
-package net.dongliu.commons.requests;
+package net.dongliu.requests;
 
 /**
- * one http header
+ * http header
  *
- * @author Dong Liu
+ * @author Dong Liu dongliu@live.cn
  */
-class Header {
+public class Header {
     private String name;
-    private Object value;
+    private String value;
 
     public static final String CONTENT_TYPE = "Content-Type";
     public static final String CONTENT_TYPE_FORM = "application/x-www-form-urlencoded";
@@ -18,7 +18,7 @@ class Header {
     public static Header of(String name, Object value) {
         Header header = new Header();
         header.setName(name);
-        header.setValue(value);
+        header.setValue(String.valueOf(value));
         return header;
     }
 
@@ -30,11 +30,11 @@ class Header {
         this.name = name;
     }
 
-    public Object getValue() {
+    public String getValue() {
         return value;
     }
 
-    public void setValue(Object value) {
+    public void setValue(String value) {
         this.value = value;
     }
 

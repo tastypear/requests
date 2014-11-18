@@ -1,12 +1,12 @@
-package net.dongliu.commons.requests;
+package net.dongliu.requests;
 
-import net.dongliu.commons.lang.Charsets;
-import net.dongliu.commons.lang.collection.Pair;
-import net.dongliu.commons.requests.code.ResponseConverter;
+import net.dongliu.requests.code.ResponseConverter;
+import net.dongliu.requests.exception.InvalidUrlException;
+import net.dongliu.requests.exception.RuntimeIOException;
+import org.apache.commons.io.Charsets;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CookieStore;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -16,17 +16,15 @@ import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.http.message.BasicNameValuePair;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -45,11 +43,11 @@ public class RequestBuilder<T> {
     private RequestConfig.Builder configBuilder = RequestConfig.custom().setConnectTimeout(10_000)
             .setSocketTimeout(10_000);
     private CredentialsProvider provider;
-    private boolean gzip;
+    private boolean gzip = true;
     // if check ssl certificate
     private boolean verify = true;
     // send cookie values
-    private CookieStore cookieStore;
+    private List<Cookie> cookies = new ArrayList<>();
     private boolean allowRedirects = true;
     private String[] cert;
     // http request body from inputStream
@@ -87,12 +85,9 @@ public class RequestBuilder<T> {
                 throw new UnsupportedOperationException("Unsupported method:" + method);
         }
 
-        for (Header header : headers) {
-            request.addHeader(header.getName(), header.valueAsString());
-        }
-
-        return new Requests<>(request, configBuilder.build(), transformer, provider, gzip,
-                verify, cookieStore, allowRedirects);
+        Request req = new Request(request, provider, headers, gzip, verify, configBuilder.build(),
+                cookies, allowRedirects);
+        return new Requests<>(req, transformer);
     }
 
 
@@ -212,7 +207,7 @@ public class RequestBuilder<T> {
     /**
      * get url, and return content
      */
-    public Response<T> get() throws IOException {
+    public Response<T> get() throws RuntimeIOException {
         return method(Method.GET).build().execute();
     }
 
@@ -220,28 +215,28 @@ public class RequestBuilder<T> {
     /**
      * get url, and return content
      */
-    public Response<T> head() throws IOException {
+    public Response<T> head() throws RuntimeIOException {
         return method(Method.HEAD).build().execute();
     }
 
     /**
      * get url, and return content
      */
-    public Response<T> post() throws IOException {
+    public Response<T> post() throws RuntimeIOException {
         return method(Method.POST).build().execute();
     }
 
     /**
      * put method
      */
-    public Response<T> put() throws IOException {
+    public Response<T> put() throws RuntimeIOException {
         return method(Method.PUT).build().execute();
     }
 
     /**
      * delete method
      */
-    public Response<T> delete() throws IOException {
+    public Response<T> delete() throws RuntimeIOException {
         return method(Method.DELETE).build().execute();
     }
 
@@ -268,9 +263,9 @@ public class RequestBuilder<T> {
     /**
      * add params
      */
-    public RequestBuilder<T> params(Pair<String, ?>... params) {
-        for (Pair<String, ?> param : params) {
-            this.param(param.getKey(), param.getValue());
+    public RequestBuilder<T> params(Parameter... params) {
+        for (Parameter param : params) {
+            this.param(param.getName(), param.getValue());
         }
         return this;
     }
@@ -362,12 +357,18 @@ public class RequestBuilder<T> {
      *     https://127.0.0.1:7890/
      *     http://username:password@127.0.0.1:7890/
      * </pre>
+     * TODO: socket proxy
      */
-    public RequestBuilder<T> proxy(String proxy) throws URISyntaxException {
+    public RequestBuilder<T> proxy(String proxy) throws InvalidUrlException {
         if (proxy == null) {
             return null;
         }
-        URI uri = new URI(proxy);
+        URI uri;
+        try {
+            uri = new URI(proxy);
+        } catch (URISyntaxException e) {
+            throw InvalidUrlException.of(e);
+        }
         String userInfo = uri.getUserInfo();
         if (userInfo != null) {
             String[] items = userInfo.split(":");
@@ -384,7 +385,7 @@ public class RequestBuilder<T> {
     }
 
     /**
-     * if send gzip requests. default false
+     * if send gzip requests. default true
      */
     public RequestBuilder<T> gzip(boolean gzip) {
         this.gzip = gzip;
@@ -392,7 +393,7 @@ public class RequestBuilder<T> {
     }
 
     /**
-     * disable ssl check for https requests
+     * set false to disable ssl check for https requests
      */
     public RequestBuilder<T> verify(boolean verify) {
         this.verify = verify;
@@ -414,14 +415,17 @@ public class RequestBuilder<T> {
      * add cookies
      */
     public RequestBuilder<T> cookies(Map<String, String> cookies) {
-        if (this.cookieStore == null) {
-            this.cookieStore = new BasicCookieStore();
-        }
         for (Map.Entry<String, String> entry : cookies.entrySet()) {
-            BasicClientCookie cookie = new BasicClientCookie(entry.getKey(), entry.getValue());
-            cookie.setPath("/");
-            cookieStore.addCookie(cookie);
+            this.cookies.add(Cookie.of(entry.getKey(), entry.getValue()));
         }
+        return this;
+    }
+
+    /**
+     * add cookies
+     */
+    public RequestBuilder<T> cookies(Cookie... cookies) {
+        Collections.addAll(this.cookies, cookies);
         return this;
     }
 
@@ -429,12 +433,7 @@ public class RequestBuilder<T> {
      * add cookie
      */
     public RequestBuilder<T> cookie(String name, String value) {
-        if (this.cookieStore == null) {
-            this.cookieStore = new BasicCookieStore();
-        }
-        BasicClientCookie cookie = new BasicClientCookie(name, value);
-        cookie.setPath("/");
-        cookieStore.addCookie(cookie);
+        this.cookies.add(Cookie.of(name, value));
         return this;
     }
 
@@ -448,7 +447,7 @@ public class RequestBuilder<T> {
 
     /**
      * set cert path
-     * TODO: to be implemented
+     * TODO: custom cert
      */
     public RequestBuilder<T> cert(String... cert) {
         throw new UnsupportedOperationException();

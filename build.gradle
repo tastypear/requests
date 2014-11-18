@@ -5,7 +5,7 @@ apply plugin: 'signing'
 sourceCompatibility = 1.7
 targetCompatibility = 1.7
 group = 'net.dongliu'
-version = '1.1.2'
+version = '1.5.0'
 
 repositories {
     mavenCentral()
@@ -15,7 +15,7 @@ dependencies {
     compile 'org.apache.httpcomponents:httpclient:4.3.6',
             'org.apache.httpcomponents:httpmime:4.3.6',
             'commons-io:commons-io:2.4',
-            'net.dongliu:commons-lang:1.2.0',
+            'org.apache.commons:commons-lang3:3.3.2',
             'org.slf4j:slf4j-api:1.7.7'
     testCompile 'junit:junit:4.+'
 }

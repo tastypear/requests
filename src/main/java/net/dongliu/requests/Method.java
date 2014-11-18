@@ -1,4 +1,4 @@
-package net.dongliu.commons.requests;
+package net.dongliu.requests;
 
 /**
  * @author Dong Liu

@@ -1,11 +1,12 @@
-package net.dongliu.commons.requests;
+package net.dongliu.requests;
 
 /**
  * http proxy
  *
  * @author Dong Liu
  */
-public class HttpProxy {
+public class Proxy {
+    private String scheme;
     private String host;
     private int port;
     private String userName;
@@ -41,5 +42,13 @@ public class HttpProxy {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getScheme() {
+        return scheme;
+    }
+
+    public void setScheme(String scheme) {
+        this.scheme = scheme;
     }
 }

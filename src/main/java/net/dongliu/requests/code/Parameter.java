@@ -1,15 +1,15 @@
-package net.dongliu.commons.requests;
+package net.dongliu.requests.code;
 
 /**
  * http parameter
  *
- * @author Dong Liu
+ * @author Dong Liu dongliu@wandoujia.com
  */
-class Parameter {
+public class Parameter {
     private String name;
-    private Object value;
+    private String value;
 
-    public static Parameter of(String name, Object value) {
+    public static Parameter of(String name, String value) {
         Parameter parameter = new Parameter();
         parameter.setName(name);
         parameter.setValue(value);
@@ -24,15 +24,11 @@ class Parameter {
         this.name = name;
     }
 
-    public Object getValue() {
+    public String getValue() {
         return value;
     }
 
-    public void setValue(Object value) {
+    public void setValue(String value) {
         this.value = value;
-    }
-
-    public String valueAsString() {
-        return String.valueOf(value);
     }
 }

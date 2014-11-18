@@ -1,4 +1,4 @@
-package net.dongliu.commons.requests;
+package net.dongliu.requests;
 
 /**
  * http basic auth info
@@ -9,9 +9,11 @@ public class BasicAuth {
     private String userName;
     private String password;
 
-    public BasicAuth(String userName, String password) {
-        this.userName = userName;
-        this.password = password;
+    public static BasicAuth of(String userName, String password) {
+        BasicAuth basicAuth = new BasicAuth();
+        basicAuth.userName = userName;
+        basicAuth.password = password;
+        return basicAuth;
     }
 
     public String getUserName() {

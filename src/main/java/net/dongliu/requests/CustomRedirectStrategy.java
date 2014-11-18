@@ -1,6 +1,7 @@
-package net.dongliu.commons.requests;
+package net.dongliu.requests;
 
-import net.dongliu.commons.lang.collection.Pair;
+import net.dongliu.requests.Response;
+import net.dongliu.requests.exception.RuntimeIOException;
 import org.apache.http.Header;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
@@ -35,19 +36,19 @@ public class CustomRedirectStrategy implements RedirectStrategy {
 
     @Override
     public HttpUriRequest getRedirect(HttpRequest request, HttpResponse response, HttpContext context)
-            throws ProtocolException {
+            throws ProtocolException, RuntimeIOException {
         Response<byte[]> resp = new Response<>();
         resp.statusCode(response.getStatusLine().getStatusCode());
         Header[] respHeaders = response.getAllHeaders();
-        List<Pair<String, String>> headers = new ArrayList<>(respHeaders.length);
+        List<net.dongliu.requests.Header> headers = new ArrayList<>(respHeaders.length);
         for (org.apache.http.Header header : respHeaders) {
-            headers.add(Pair.of(header.getName(), header.getValue()));
+            headers.add(net.dongliu.requests.Header.of(header.getName(), header.getValue()));
         }
         resp.headers(headers);
         try {
             resp.body(EntityUtils.toByteArray(response.getEntity()));
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw RuntimeIOException.of(e);
         }
         lastResponse.addHistory(resp);
         return strategy.getRedirect(request, response, context);

@@ -1,4 +1,4 @@
-package net.dongliu.commons.requests.code;
+package net.dongliu.requests.code;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;

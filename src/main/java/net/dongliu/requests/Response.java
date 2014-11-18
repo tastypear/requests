@@ -1,7 +1,6 @@
-package net.dongliu.commons.requests;
+package net.dongliu.requests;
 
-import net.dongliu.commons.lang.collection.Pair;
-
+import java.net.HttpCookie;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -13,25 +12,29 @@ import java.util.List;
  */
 public class Response<T> {
     private int statusCode;
-    private List<Pair<String, String>> headers = Collections.emptyList();
-
+    private List<Header> headers = Collections.emptyList();
+    private List<Cookie> cookies;
     private T body;
 
     private List<Response<byte[]>> historyResponses;
+    private Request request;
+
+    Response() {
+    }
 
     public int statusCode() {
         return statusCode;
     }
 
-    public void statusCode(int statusCode) {
+    void statusCode(int statusCode) {
         this.statusCode = statusCode;
     }
 
-    public List<Pair<String, String>> headers() {
+    List<Header> headers() {
         return headers;
     }
 
-    public void headers(List<Pair<String, String>> headers) {
+    public void headers(List<Header> headers) {
         this.headers = headers;
     }
 
@@ -39,8 +42,8 @@ public class Response<T> {
      * get first match header value by header name
      */
     public String header(String name) {
-        for (Pair<String, String> header : headers) {
-            if (header.getKey().equals(name)) {
+        for (Header header : headers) {
+            if (header.getName().equals(name)) {
                 return header.getValue();
             }
         }
@@ -51,24 +54,31 @@ public class Response<T> {
         return body;
     }
 
-    public void body(T body) {
+    void body(T body) {
         this.body = body;
+    }
+
+    void cookies(List<Cookie> cookies) {
+        this.cookies = cookies;
     }
 
     /**
      * get cookies
-     * TODO: to be implemented
      */
-    public List<Pair<String, String>> cookies() {
-        throw new UnsupportedOperationException();
+    public List<Cookie> cookies() {
+        return this.cookies;
     }
 
     /**
      * get cookie value by name
-     * TODO: to be implemented
      */
-    public String cookie(String name) {
-        throw new UnsupportedOperationException();
+    public Cookie cookie(String name) {
+        for (Cookie cookie : cookies()) {
+            if (cookie.getName().equals(name)) {
+                return cookie;
+            }
+        }
+        return null;
     }
 
     /**
@@ -80,10 +90,13 @@ public class Response<T> {
 
     /**
      * return request which produce this response
-     * TODO: to be implemented
      */
     public Request request() {
-        throw new UnsupportedOperationException();
+        return this.request;
+    }
+
+    void request(Request request) {
+        this.request = request;
     }
 
     void addHistory(Response<byte[]> resp) {
