@@ -53,7 +53,7 @@ public class RequestBuilder<T> {
     // http request body from inputStream
     private InputStream in;
     // http multi part post request files
-    private List<MultiPart> files;
+    private List<MultiPart> files = new ArrayList<>();
 
     RequestBuilder() {
     }
@@ -99,7 +99,7 @@ public class RequestBuilder<T> {
             throw new RuntimeException(e);
         }
         for (Parameter param : this.params) {
-            urlBuilder.addParameter(param.getName(), param.valueAsString());
+            urlBuilder.addParameter(param.getName(), param.getValue());
         }
         URI uri;
         try {
@@ -130,11 +130,11 @@ public class RequestBuilder<T> {
         if (files != null) {
             MultipartEntityBuilder entityBuilder = MultipartEntityBuilder.create();
             for (Parameter parameter : params) {
-                entityBuilder.addTextBody(parameter.getName(), String.valueOf(parameter.getValue()));
+                entityBuilder.addTextBody(parameter.getName(), parameter.getValue());
             }
             for (MultiPart f : files) {
-                entityBuilder.addBinaryBody(f.getFileName(), f.getFile(), ContentType.create(f.getMeta()),
-                        f.getFileName());
+                entityBuilder.addBinaryBody(f.getName(), f.getFile(),
+                        ContentType.create(f.getMime()), f.getFileName());
             }
             HttpPost httpPost = new HttpPost(url);
             httpPost.setEntity(entityBuilder.build());
@@ -154,7 +154,7 @@ public class RequestBuilder<T> {
             // use www-form-urlencoded to send params
             List<BasicNameValuePair> paramList = new ArrayList<>(params.size());
             for (Parameter param : this.params) {
-                paramList.add(new BasicNameValuePair(param.getName(), param.valueAsString()));
+                paramList.add(new BasicNameValuePair(param.getName(), param.getValue()));
             }
             UrlEncodedFormEntity entity = new UrlEncodedFormEntity(paramList, Charsets.UTF_8);
             header(Header.CONTENT_TYPE, Header.CONTENT_TYPE_FORM);
@@ -191,7 +191,7 @@ public class RequestBuilder<T> {
             }
             URIBuilder urlBuilder = new URIBuilder(url);
             for (Parameter param : this.params) {
-                urlBuilder.addParameter(param.getName(), param.valueAsString());
+                urlBuilder.addParameter(param.getName(), param.getValue());
             }
             return urlBuilder.build();
         } catch (URISyntaxException e) {
@@ -456,10 +456,21 @@ public class RequestBuilder<T> {
     }
 
     /**
-     * send multi part requests
+     * add multi part file, send multipart requests
      */
     public RequestBuilder<T> files(List<MultiPart> files) {
-        this.files = files;
+        this.files.addAll(files);
+        return this;
+    }
+
+    /**
+     * add multi part file, send multipart requests
+     *
+     * @param files
+     * @return
+     */
+    public RequestBuilder<T> files(MultiPart... files) {
+        Collections.addAll(this.files, files);
         return this;
     }
 }

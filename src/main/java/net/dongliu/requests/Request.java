@@ -47,7 +47,7 @@ public class Request {
         }
         // set gzip header
         if (gzip) {
-            headers.add(Header.of("Accept-Encoding", "gzip, deflate"));
+            headers.add(Header.of(Header.Accept_Encoding, Header.Accept_Encoding_COMPRESS));
         }
 
         for (Header header : headers) {

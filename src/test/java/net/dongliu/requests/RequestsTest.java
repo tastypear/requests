@@ -6,9 +6,7 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class RequestsTest {
 
@@ -66,5 +64,17 @@ public class RequestsTest {
 //                .proxy("http://127.0.0.1:8000/")
 //                .get();
 //        assertEquals(200, resp.statusCode());
+        String s = "𠈓";
+        System.out.println(s.length());
+    }
+
+    @Test
+    public void testMultiPart() {
+        Response<String> response = Requests.string().url("http://10.0.11.48:5000/upload")
+                .files(MultiPart.of("file",
+                        "/Users/dongliu/code/java/requests/src/test/java/net/dongliu/requests/RequestsTest.java"))
+                .post();
+        System.out.println(response.statusCode());
+        System.out.println(response.body());
     }
 }

@@ -7,12 +7,12 @@ package net.dongliu.requests;
  */
 class Parameter {
     private String name;
-    private Object value;
+    private String value;
 
     public static Parameter of(String name, Object value) {
         Parameter parameter = new Parameter();
         parameter.setName(name);
-        parameter.setValue(value);
+        parameter.setValue(String.valueOf(value));
         return parameter;
     }
 
@@ -24,15 +24,12 @@ class Parameter {
         this.name = name;
     }
 
-    public Object getValue() {
+    public String getValue() {
         return value;
     }
 
-    public void setValue(Object value) {
+    public void setValue(String value) {
         this.value = value;
     }
 
-    public String valueAsString() {
-        return String.valueOf(value);
-    }
 }

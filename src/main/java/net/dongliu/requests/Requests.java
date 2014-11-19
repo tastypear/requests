@@ -2,8 +2,6 @@ package net.dongliu.requests;
 
 import net.dongliu.requests.code.ResponseConverter;
 import net.dongliu.requests.code.StringResponseConverter;
-import net.dongliu.requests.AllTrustManager;
-import net.dongliu.requests.CustomRedirectStrategy;
 import net.dongliu.requests.exception.RuntimeIOException;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.entity.DeflateDecompressingEntity;
