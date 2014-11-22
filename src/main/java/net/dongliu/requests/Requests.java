@@ -1,5 +1,6 @@
 package net.dongliu.requests;
 
+import net.dongliu.requests.converter.FileResponseConverter;
 import net.dongliu.requests.converter.ResponseConverter;
 import net.dongliu.requests.converter.StringResponseConverter;
 import net.dongliu.requests.exception.RuntimeIOException;
@@ -7,6 +8,7 @@ import net.dongliu.requests.lang.Cookie;
 import net.dongliu.requests.lang.Cookies;
 import net.dongliu.requests.lang.Header;
 import net.dongliu.requests.lang.Headers;
+import net.dongliu.requests.utils.Void;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.entity.DeflateDecompressingEntity;
 import org.apache.http.client.entity.GzipDecompressingEntity;
@@ -19,6 +21,7 @@ import org.apache.http.impl.client.HttpClients;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
+import java.io.File;
 import java.io.IOException;
 import java.net.HttpCookie;
 import java.nio.charset.Charset;
@@ -180,4 +183,10 @@ public class Requests<T> {
         return client(ResponseConverter.bytes);
     }
 
+    /**
+     * get one requests client for write response body to file
+     */
+    public static RequestBuilder<Void> file(File file) {
+        return client(new FileResponseConverter(file));
+    }
 }

@@ -2,6 +2,7 @@ package net.dongliu.requests.converter;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
+import net.dongliu.requests.utils.Void;
 
 import java.io.*;
 
@@ -10,7 +11,7 @@ import java.io.*;
  *
  * @author Dong Liu
  */
-public class FileResponseConverter implements ResponseConverter {
+public class FileResponseConverter implements ResponseConverter<Void> {
     private final File file;
 
     /**
@@ -38,12 +39,12 @@ public class FileResponseConverter implements ResponseConverter {
      * @return true if success
      */
     @Override
-    public Boolean convert(HttpEntity httpEntity) throws IOException {
+    public Void convert(HttpEntity httpEntity) throws IOException {
         try (InputStream in = httpEntity.getContent()) {
             try (OutputStream out = new FileOutputStream(this.file)) {
                 IOUtils.copy(in, out);
             }
         }
-        return true;
+        return new Void();
     }
 }
