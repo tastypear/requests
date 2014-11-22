@@ -1,0 +1,21 @@
+package net.dongliu.requests.lang;
+
+import java.util.List;
+
+/**
+ * a list of parameters
+ *
+ * @author Dong Liu dongliu@wandoujia.com
+ */
+public class Parameters extends MultiMap<String, String, Parameter> {
+    public Parameters() {
+    }
+
+    public Parameters(Parameter... pairs) {
+        super(pairs);
+    }
+
+    public Parameters(List<Parameter> pairs) {
+        super(pairs);
+    }
+}

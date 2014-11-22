@@ -1,5 +1,10 @@
 package net.dongliu.requests;
 
+import net.dongliu.requests.lang.Cookie;
+import net.dongliu.requests.lang.Cookies;
+import net.dongliu.requests.lang.Header;
+import net.dongliu.requests.lang.Headers;
+import net.dongliu.requests.utils.Coder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.RequestConfig;
@@ -21,13 +26,13 @@ public class Request {
     private final boolean gzip;
     // if verify certificate of https site
     private final boolean verify;
-    private final List<Header> headers;
-    private final List<Cookie> cookies;
+    private final Headers headers;
+    private final Cookies cookies;
     private final boolean allowRedirects;
 
-    Request(HttpRequestBase request, CredentialsProvider provider, List<Header> headers,
+    Request(HttpRequestBase request, CredentialsProvider provider, Headers headers,
             boolean gzip, boolean verify, RequestConfig config,
-            List<Cookie> cookies, boolean allowRedirects) {
+            Cookies cookies, boolean allowRedirects) {
         this.request = request;
         this.headers = headers;
         this.config = config;
@@ -41,7 +46,7 @@ public class Request {
         if (!cookies.isEmpty()) {
             List<String> strs = new ArrayList<>(cookies.size());
             for (Cookie cookie : cookies) {
-                strs.add(cookie.string());
+                strs.add(Coder.encode(cookie, "UTF-8"));
             }
             headers.add(Header.of("Cookie", StringUtils.join(strs, ";")));
         }
@@ -51,7 +56,7 @@ public class Request {
         }
 
         for (Header header : headers) {
-            request.addHeader(header.getName(), header.valueAsString());
+            request.addHeader(header.getName(), header.getValue());
         }
         request.setConfig(config);
     }
@@ -76,7 +81,7 @@ public class Request {
         return verify;
     }
 
-    public List<Cookie> cookies() {
+    public Cookies cookies() {
         return cookies;
     }
 
@@ -89,7 +94,7 @@ public class Request {
      *
      * @return
      */
-    public List<Header> headers() {
+    public Headers headers() {
         return headers;
     }
 

@@ -1,6 +1,6 @@
 package net.dongliu.requests;
 
-import org.junit.Assert;
+import net.dongliu.requests.lang.MultiPart;
 import org.junit.Test;
 
 public class MultiPartTest {

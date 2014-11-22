@@ -1,8 +1,9 @@
 package net.dongliu.requests;
 
-import net.dongliu.requests.code.ResponseConverter;
+import net.dongliu.requests.converter.ResponseConverter;
 import net.dongliu.requests.exception.InvalidUrlException;
 import net.dongliu.requests.exception.RuntimeIOException;
+import net.dongliu.requests.lang.*;
 import org.apache.commons.io.Charsets;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
@@ -37,8 +38,8 @@ public class RequestBuilder<T> {
     private Method method;
     private String url;
     private byte[] body;
-    private List<Parameter> params = new ArrayList<>();
-    private List<Header> headers = new ArrayList<>();
+    private Parameters params = new Parameters();
+    private Headers headers = new Headers();
     private ResponseConverter<T> transformer;
     private RequestConfig.Builder configBuilder = RequestConfig.custom().setConnectTimeout(10_000)
             .setSocketTimeout(10_000);
@@ -47,7 +48,7 @@ public class RequestBuilder<T> {
     // if check ssl certificate
     private boolean verify = true;
     // send cookie values
-    private List<Cookie> cookies = new ArrayList<>();
+    private Cookies cookies = new Cookies();
     private boolean allowRedirects = true;
     private String[] cert;
     // http request body from inputStream
@@ -425,7 +426,9 @@ public class RequestBuilder<T> {
      * add cookies
      */
     public RequestBuilder<T> cookies(Cookie... cookies) {
-        Collections.addAll(this.cookies, cookies);
+        for (Cookie cookie : cookies) {
+            this.cookies.add(cookie);
+        }
         return this;
     }
 

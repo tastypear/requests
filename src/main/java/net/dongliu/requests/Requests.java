@@ -1,8 +1,12 @@
 package net.dongliu.requests;
 
-import net.dongliu.requests.code.ResponseConverter;
-import net.dongliu.requests.code.StringResponseConverter;
+import net.dongliu.requests.converter.ResponseConverter;
+import net.dongliu.requests.converter.StringResponseConverter;
 import net.dongliu.requests.exception.RuntimeIOException;
+import net.dongliu.requests.lang.Cookie;
+import net.dongliu.requests.lang.Cookies;
+import net.dongliu.requests.lang.Header;
+import net.dongliu.requests.lang.Headers;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.entity.DeflateDecompressingEntity;
 import org.apache.http.client.entity.GzipDecompressingEntity;
@@ -21,7 +25,6 @@ import java.nio.charset.Charset;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -80,8 +83,8 @@ public class Requests<T> {
             try (CloseableHttpResponse httpResponse = client.execute(request.request())) {
                 response.statusCode(httpResponse.getStatusLine().getStatusCode());
                 org.apache.http.Header[] respHeaders = httpResponse.getAllHeaders();
-                List<Header> headers = new ArrayList<>(respHeaders.length);
-                List<Cookie> cookies = new ArrayList<>();
+                Headers headers = new Headers();
+                Cookies cookies = new Cookies();
                 for (org.apache.http.Header header : respHeaders) {
                     headers.add(Header.of(header.getName(), header.getValue()));
                     if (header.getName().equalsIgnoreCase("Set-Cookie")) {
@@ -101,7 +104,7 @@ public class Requests<T> {
                 response.headers(headers);
                 response.cookies(cookies);
                 HttpEntity entity;
-                switch (ifCompress(headers)) {
+                switch (useCompress(headers)) {
                     case 1:
                         entity = new GzipDecompressingEntity(httpResponse.getEntity());
                         break;
@@ -123,19 +126,19 @@ public class Requests<T> {
         }
     }
 
-    private int ifCompress(List<Header> headers) {
-        for (Header header : headers) {
-            if (header.getName().equalsIgnoreCase("content-encoding")) {
-                String ec = header.getValue().trim().toLowerCase();
-                switch (ec) {
-                    case "gzip":
-                        return 1;
-                    case "deflate":
-                        return 2;
-                }
-            }
+    private int useCompress(Headers headers) {
+        Header header = headers.getFirst("Content-Encoding");
+        if (header == null) {
+            return 0;
         }
-        return 0;
+        String ec = header.getValue().toLowerCase();
+        if (ec.contains("gzip")) {
+            return 1;
+        } else if (ec.contains("deflate")) {
+            return 2;
+        } else {
+            return 0;
+        }
     }
 
     /**

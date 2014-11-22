@@ -1,5 +1,6 @@
 package net.dongliu.requests;
 
+import net.dongliu.requests.lang.MultiPart;
 import org.apache.commons.io.Charsets;
 import org.junit.Test;
 
@@ -31,7 +32,7 @@ public class RequestsTest {
                 .cookie("test", "value").get();
         assertEquals("test=value", response.request().header("Cookie"));
         assertTrue(response.body().contains("window"));
-        assertNotNull(response.cookie("BAIDUID"));
+        assertNotNull(response.cookies().getFirst("BAIDUID"));
     }
 
     @Test

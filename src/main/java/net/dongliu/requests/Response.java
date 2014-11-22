@@ -1,8 +1,9 @@
 package net.dongliu.requests;
 
-import java.net.HttpCookie;
+import net.dongliu.requests.lang.Cookies;
+import net.dongliu.requests.lang.Headers;
+
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -12,8 +13,8 @@ import java.util.List;
  */
 public class Response<T> {
     private int statusCode;
-    private List<Header> headers = Collections.emptyList();
-    private List<Cookie> cookies;
+    private Headers headers;
+    private Cookies cookies;
     private T body;
 
     private List<Response<byte[]>> historyResponses;
@@ -30,24 +31,12 @@ public class Response<T> {
         this.statusCode = statusCode;
     }
 
-    List<Header> headers() {
+    public Headers headers() {
         return headers;
     }
 
-    public void headers(List<Header> headers) {
+    void headers(Headers headers) {
         this.headers = headers;
-    }
-
-    /**
-     * get first match header value by header name
-     */
-    public String header(String name) {
-        for (Header header : headers) {
-            if (header.getName().equals(name)) {
-                return header.getValue();
-            }
-        }
-        return null;
     }
 
     public T body() {
@@ -58,27 +47,15 @@ public class Response<T> {
         this.body = body;
     }
 
-    void cookies(List<Cookie> cookies) {
+    void cookies(Cookies cookies) {
         this.cookies = cookies;
     }
 
     /**
      * get cookies
      */
-    public List<Cookie> cookies() {
+    public Cookies cookies() {
         return this.cookies;
-    }
-
-    /**
-     * get cookie value by name
-     */
-    public Cookie cookie(String name) {
-        for (Cookie cookie : cookies()) {
-            if (cookie.getName().equals(name)) {
-                return cookie;
-            }
-        }
-        return null;
     }
 
     /**

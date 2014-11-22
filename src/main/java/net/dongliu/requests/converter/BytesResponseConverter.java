@@ -1,4 +1,4 @@
-package net.dongliu.requests.code;
+package net.dongliu.requests.converter;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.util.EntityUtils;
