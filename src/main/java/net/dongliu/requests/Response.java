@@ -1,13 +1,13 @@
 package net.dongliu.requests;
 
-import net.dongliu.requests.lang.Cookies;
-import net.dongliu.requests.lang.Headers;
+import net.dongliu.requests.struct.Cookies;
+import net.dongliu.requests.struct.Headers;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * http response, with statusCode, headers, and data
+ * http response, with getStatusCode, headers, and data
  *
  * @author Dong Liu
  */
@@ -23,56 +23,56 @@ public class Response<T> {
     Response() {
     }
 
-    public int statusCode() {
+    public int getStatusCode() {
         return statusCode;
     }
 
-    void statusCode(int statusCode) {
+    void setStatusCode(int statusCode) {
         this.statusCode = statusCode;
     }
 
-    public Headers headers() {
+    public Headers getHeaders() {
         return headers;
     }
 
-    void headers(Headers headers) {
+    void setHeaders(Headers headers) {
         this.headers = headers;
     }
 
-    public T body() {
+    public T getBody() {
         return body;
     }
 
-    void body(T body) {
+    void setBody(T body) {
         this.body = body;
     }
 
-    void cookies(Cookies cookies) {
+    void setCookies(Cookies cookies) {
         this.cookies = cookies;
     }
 
     /**
      * get cookies
      */
-    public Cookies cookies() {
+    public Cookies getCookies() {
         return this.cookies;
     }
 
     /**
      * redirect history responses.
      */
-    public List<Response<byte[]>> history() {
+    public List<Response<byte[]>> getHistory() {
         return historyResponses;
     }
 
     /**
      * return request which produce this response
      */
-    public Request request() {
+    public Request getRequest() {
         return this.request;
     }
 
-    void request(Request request) {
+    void setRequest(Request request) {
         this.request = request;
     }
 

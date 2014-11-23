@@ -11,7 +11,7 @@ import java.nio.charset.Charset;
  *
  * @author Dong Liu
  */
-public class StringResponseConverter implements ResponseConverter<String> {
+final public class StringResponseConverter implements ResponseConverter<String> {
     // can be null
     private final Charset charset;
 

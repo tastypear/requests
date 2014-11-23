@@ -1,7 +1,7 @@
 package net.dongliu.requests.utils;
 
 import net.dongliu.requests.exception.IllegalEncodingException;
-import net.dongliu.requests.lang.Pair;
+import net.dongliu.requests.struct.Pair;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;

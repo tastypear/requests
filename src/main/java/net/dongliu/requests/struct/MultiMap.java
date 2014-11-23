@@ -1,9 +1,9 @@
-package net.dongliu.requests.lang;
+package net.dongliu.requests.struct;
 
 import java.util.*;
 
 /**
- * map contains a Pair<K, V> list. same key can have multi values
+ * map contains a Pair list. same key can have multi values
  *
  * @author Dong Liu dongliu@wandoujia.com
  */

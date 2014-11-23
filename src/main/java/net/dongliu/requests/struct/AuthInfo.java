@@ -1,19 +1,18 @@
-package net.dongliu.requests.lang;
+package net.dongliu.requests.struct;
 
 /**
- * http basic auth info
- *
- * @author Dong Liu dongliu@live.cn
+ * @author Dong Liu dongliu@wandoujia.com
  */
-public class BasicAuth {
+public class AuthInfo {
     private String userName;
     private String password;
 
-    public static BasicAuth of(String userName, String password) {
-        BasicAuth basicAuth = new BasicAuth();
-        basicAuth.userName = userName;
-        basicAuth.password = password;
-        return basicAuth;
+    public AuthInfo() {
+    }
+
+    public AuthInfo(String userName, String password) {
+        this.userName = userName;
+        this.password = password;
     }
 
     public String getUserName() {

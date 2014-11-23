@@ -1,9 +1,4 @@
-package net.dongliu.requests.lang;
-
-import net.dongliu.requests.exception.RuntimeIOException;
-
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
+package net.dongliu.requests.struct;
 
 /**
  * http cookie

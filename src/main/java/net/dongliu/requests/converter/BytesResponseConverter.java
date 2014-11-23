@@ -10,7 +10,7 @@ import java.io.IOException;
  *
  * @author Dong Liu
  */
-public class BytesResponseConverter implements ResponseConverter<byte[]> {
+final public class BytesResponseConverter implements ResponseConverter<byte[]> {
 
     @Override
     public byte[] convert(HttpEntity httpEntity) throws IOException {

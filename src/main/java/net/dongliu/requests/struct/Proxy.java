@@ -1,4 +1,4 @@
-package net.dongliu.requests.lang;
+package net.dongliu.requests.struct;
 
 /**
  * http proxy
@@ -9,8 +9,7 @@ public class Proxy {
     private String scheme;
     private String host;
     private int port;
-    private String userName;
-    private String password;
+    private AuthInfo authInfo;
 
     public String getHost() {
         return host;
@@ -28,20 +27,20 @@ public class Proxy {
         this.port = port;
     }
 
-    public String getUserName() {
-        return userName;
+    public AuthInfo getAuthInfo() {
+        return authInfo;
     }
 
-    public void setUserName(String userName) {
-        this.userName = userName;
+    public void setAuthInfo(AuthInfo authInfo) {
+        this.authInfo = authInfo;
+    }
+
+    public String getUserName() {
+        return authInfo.getUserName();
     }
 
     public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
+        return authInfo.getPassword();
     }
 
     public String getScheme() {

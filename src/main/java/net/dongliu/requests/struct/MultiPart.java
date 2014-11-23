@@ -1,4 +1,4 @@
-package net.dongliu.requests.lang;
+package net.dongliu.requests.struct;
 
 import java.io.File;
 import java.net.URLConnection;

@@ -11,7 +11,7 @@ import java.io.*;
  *
  * @author Dong Liu
  */
-public class FileResponseConverter implements ResponseConverter<Void> {
+final public class FileResponseConverter implements ResponseConverter<Void> {
     private final File file;
 
     /**

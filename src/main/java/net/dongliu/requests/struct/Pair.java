@@ -1,4 +1,4 @@
-package net.dongliu.requests.lang;
+package net.dongliu.requests.struct;
 
 /**
  * @author Dong Liu dongliu@wandoujia.com

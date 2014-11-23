@@ -3,22 +3,7 @@ package net.dongliu.requests;
 import net.dongliu.requests.converter.ResponseConverter;
 import net.dongliu.requests.exception.InvalidUrlException;
 import net.dongliu.requests.exception.RuntimeIOException;
-import net.dongliu.requests.lang.*;
-import org.apache.commons.io.Charsets;
-import org.apache.http.HttpHost;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.*;
-import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.entity.ByteArrayEntity;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.InputStreamEntity;
-import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.message.BasicNameValuePair;
+import net.dongliu.requests.struct.*;
 
 import java.io.InputStream;
 import java.net.URI;
@@ -38,166 +23,29 @@ public class RequestBuilder<T> {
     private Method method;
     private String url;
     private byte[] body;
-    private Parameters params = new Parameters();
+    private Parameters parameters = new Parameters();
     private Headers headers = new Headers();
+    // send cookie values
+    private Cookies cookies = new Cookies();
+    // http multi part post request files
+    private List<MultiPart> files = new ArrayList<>();
+    // http request body from inputStream
+    private InputStream in;
+
+    private int connectTimeout = 10_000;
+    private int socketTimeout = 10_000;
+
     private ResponseConverter<T> transformer;
-    private RequestConfig.Builder configBuilder = RequestConfig.custom().setConnectTimeout(10_000)
-            .setSocketTimeout(10_000);
-    private CredentialsProvider provider;
     private boolean gzip = true;
     // if check ssl certificate
     private boolean verify = true;
-    // send cookie values
-    private Cookies cookies = new Cookies();
     private boolean allowRedirects = true;
+    //private CredentialsProvider provider;
+    private AuthInfo authInfo;
     private String[] cert;
-    // http request body from inputStream
-    private InputStream in;
-    // http multi part post request files
-    private List<MultiPart> files = new ArrayList<>();
+    private Proxy proxy;
 
     RequestBuilder() {
-    }
-
-    public Requests<T> build() {
-        HttpRequestBase request;
-        switch (method) {
-            case POST:
-                request = buildHttpPost();
-                break;
-            case GET:
-                request = buildHttpGet();
-                break;
-            case HEAD:
-                request = buildHttpHead();
-                break;
-            case PUT:
-                request = buildHttpPut();
-                break;
-            case DELETE:
-                request = buildHttpDelete();
-                break;
-            case OPTIONS:
-                request = buildHttpOptions();
-                break;
-            case TRACE:
-            case CONNECT:
-            default:
-                throw new UnsupportedOperationException("Unsupported method:" + method);
-        }
-
-        Request req = new Request(request, provider, headers, gzip, verify, configBuilder.build(),
-                cookies, allowRedirects);
-        return new Requests<>(req, transformer);
-    }
-
-
-    private HttpRequestBase buildHttpPut() {
-        URIBuilder urlBuilder;
-        try {
-            urlBuilder = new URIBuilder(url);
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
-        for (Parameter param : this.params) {
-            urlBuilder.addParameter(param.getName(), param.getValue());
-        }
-        URI uri;
-        try {
-            uri = urlBuilder.build();
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
-        HttpPut httpPut = new HttpPut(uri);
-        if (body != null) {
-            httpPut.setEntity(new ByteArrayEntity(body));
-        } else if (in != null) {
-            httpPut.setEntity(new InputStreamEntity(in));
-        }
-        return httpPut;
-    }
-
-
-    private HttpPost buildHttpPost() {
-        int bodyCount = 0;
-        if (files != null) bodyCount++;
-        if (body != null) bodyCount++;
-        if (in != null) bodyCount++;
-        if (bodyCount > 1) {
-            //can not set both
-            throw new RuntimeException("body and in cannot both be set");
-        }
-
-        if (files != null) {
-            MultipartEntityBuilder entityBuilder = MultipartEntityBuilder.create();
-            for (Parameter parameter : params) {
-                entityBuilder.addTextBody(parameter.getName(), parameter.getValue());
-            }
-            for (MultiPart f : files) {
-                entityBuilder.addBinaryBody(f.getName(), f.getFile(),
-                        ContentType.create(f.getMime()), f.getFileName());
-            }
-            HttpPost httpPost = new HttpPost(url);
-            httpPost.setEntity(entityBuilder.build());
-            return httpPost;
-        } else if (body != null) {
-            URI uri = buildFullUrl();
-            HttpPost httpPost = new HttpPost(uri);
-            httpPost.setEntity(new ByteArrayEntity(body));
-            return httpPost;
-        } else if (in != null) {
-            URI uri = buildFullUrl();
-            HttpPost httpPost = new HttpPost(uri);
-            httpPost.setEntity(new InputStreamEntity(in));
-            return httpPost;
-        } else {
-            HttpPost httpPost = new HttpPost(url);
-            // use www-form-urlencoded to send params
-            List<BasicNameValuePair> paramList = new ArrayList<>(params.size());
-            for (Parameter param : this.params) {
-                paramList.add(new BasicNameValuePair(param.getName(), param.getValue()));
-            }
-            UrlEncodedFormEntity entity = new UrlEncodedFormEntity(paramList, Charsets.UTF_8);
-            header(Header.CONTENT_TYPE, Header.CONTENT_TYPE_FORM);
-            httpPost.setEntity(entity);
-            return httpPost;
-        }
-    }
-
-    private HttpRequestBase buildHttpHead() {
-        URI uri = buildFullUrl();
-        return new HttpHead(uri);
-    }
-
-    private HttpRequestBase buildHttpGet() {
-        URI uri = buildFullUrl();
-        return new HttpGet(uri);
-    }
-
-    private HttpRequestBase buildHttpDelete() {
-        URI uri = buildFullUrl();
-        return new HttpDelete(uri);
-    }
-
-    private HttpRequestBase buildHttpOptions() {
-        URI uri = buildFullUrl();
-        return new HttpOptions(uri);
-    }
-
-    // build full url with parameters
-    private URI buildFullUrl() {
-        try {
-            if (this.params.isEmpty()) {
-                return new URI(this.url);
-            }
-            URIBuilder urlBuilder = new URIBuilder(url);
-            for (Parameter param : this.params) {
-                urlBuilder.addParameter(param.getName(), param.getValue());
-            }
-            return urlBuilder.build();
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     public RequestBuilder<T> url(String url) {
@@ -205,40 +53,50 @@ public class RequestBuilder<T> {
         return this;
     }
 
+    Request build() {
+        return new Request(method, url, parameters, headers, in, files, body,
+                authInfo, gzip, verify, cookies, allowRedirects,
+                connectTimeout, socketTimeout, proxy);
+    }
+
     /**
      * get url, and return content
      */
     public Response<T> get() throws RuntimeIOException {
-        return method(Method.GET).build().execute();
+        Request request = method(Method.GET).build();
+        return Requests.execute(request, this.transformer);
     }
-
 
     /**
      * get url, and return content
      */
     public Response<T> head() throws RuntimeIOException {
-        return method(Method.HEAD).build().execute();
+        Request request = method(Method.HEAD).build();
+        return Requests.execute(request, this.transformer);
     }
 
     /**
      * get url, and return content
      */
     public Response<T> post() throws RuntimeIOException {
-        return method(Method.POST).build().execute();
+        Request request = method(Method.POST).build();
+        return Requests.execute(request, this.transformer);
     }
 
     /**
      * put method
      */
     public Response<T> put() throws RuntimeIOException {
-        return method(Method.PUT).build().execute();
+        Request request = method(Method.PUT).build();
+        return Requests.execute(request, this.transformer);
     }
 
     /**
      * delete method
      */
     public Response<T> delete() throws RuntimeIOException {
-        return method(Method.DELETE).build().execute();
+        Request request = method(Method.DELETE).build();
+        return Requests.execute(request, this.transformer);
     }
 
     /**
@@ -275,7 +133,7 @@ public class RequestBuilder<T> {
      * add one parameter
      */
     public RequestBuilder<T> param(String key, Object value) {
-        this.params.add(Parameter.of(key, value));
+        this.parameters.add(Parameter.of(key, value));
         return this;
     }
 
@@ -339,7 +197,7 @@ public class RequestBuilder<T> {
      * set socket connect and read timeout in milliseconds. default is 10_000
      */
     public RequestBuilder<T> timeout(int timeout) {
-        configBuilder.setConnectTimeout(timeout).setSocketTimeout(timeout);
+        this.socketTimeout = this.connectTimeout = timeout;
         return this;
     }
 
@@ -347,7 +205,8 @@ public class RequestBuilder<T> {
      * set socket connect and read timeout in milliseconds. default is 10_000
      */
     public RequestBuilder<T> timeout(int connectTimeout, int socketTimeout) {
-        configBuilder.setConnectTimeout(connectTimeout).setSocketTimeout(socketTimeout);
+        this.connectTimeout = connectTimeout;
+        this.socketTimeout = socketTimeout;
         return this;
     }
 
@@ -360,28 +219,30 @@ public class RequestBuilder<T> {
      * </pre>
      * TODO: socket proxy
      */
-    public RequestBuilder<T> proxy(String proxy) throws InvalidUrlException {
-        if (proxy == null) {
+    public RequestBuilder<T> proxy(String proxyUrl) throws InvalidUrlException {
+        if (proxyUrl == null) {
             return null;
         }
         URI uri;
         try {
-            uri = new URI(proxy);
+            uri = new URI(proxyUrl);
         } catch (URISyntaxException e) {
             throw InvalidUrlException.of(e);
         }
         String userInfo = uri.getUserInfo();
+        Proxy proxy = new Proxy();
+        proxy.setHost(uri.getHost());
+        proxy.setPort(uri.getPort());
+        proxy.setScheme(uri.getScheme());
         if (userInfo != null) {
             String[] items = userInfo.split(":");
             String userName = items[0];
             String password = items[1];
-            CredentialsProvider provider = new BasicCredentialsProvider();
-            provider.setCredentials(new AuthScope(uri.getHost(), uri.getPort()),
-                    new UsernamePasswordCredentials(userName, password));
-            this.provider = provider;
+            AuthInfo authInfo = new AuthInfo(userName, password);
+            proxy.setAuthInfo(authInfo);
         }
-        HttpHost httpHost = new HttpHost(uri.getHost(), uri.getPort(), uri.getScheme());
-        configBuilder.setProxy(httpHost);
+        this.proxy = proxy;
+
         return this;
     }
 
@@ -405,10 +266,7 @@ public class RequestBuilder<T> {
      * set http basic auth info
      */
     public RequestBuilder<T> auth(String userName, String password) {
-        CredentialsProvider provider = new BasicCredentialsProvider();
-        UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(userName, password);
-        provider.setCredentials(AuthScope.ANY, credentials);
-        this.provider = provider;
+        authInfo = new AuthInfo(userName, password);
         return this;
     }
 
