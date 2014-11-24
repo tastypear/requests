@@ -13,11 +13,11 @@ public class Header extends Pair<String, String> {
     public static final String Accept_Encoding = "Accept-Encoding";
     public static final String Accept_Encoding_COMPRESS = "gzip, deflate";
 
-    public static Header of(String name, Object value) {
-        Header header = new Header();
-        header.setName(name);
-        header.setValue(String.valueOf(value));
-        return header;
+    public Header() {
+    }
+
+    public Header(String name, Object value) {
+        super(name, String.valueOf(value));
     }
 
 }

@@ -7,11 +7,12 @@ public class Pair<K, V> {
     private K name;
     private V value;
 
-    public static <K, V> Pair<K, V> of(K name, V value) {
-        Pair<K, V> pair = new Pair<>();
-        pair.setName(name);
-        pair.setValue(value);
-        return pair;
+    public Pair() {
+    }
+
+    public Pair(K name, V value) {
+        this.name = name;
+        this.value = value;
     }
 
     public K getName() {

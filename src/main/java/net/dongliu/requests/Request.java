@@ -3,6 +3,7 @@ package net.dongliu.requests;
 import net.dongliu.requests.struct.*;
 
 import java.io.InputStream;
+import java.net.URI;
 import java.util.List;
 
 /**
@@ -11,7 +12,7 @@ import java.util.List;
 public class Request {
 
     private final Method method;
-    private final String url;
+    private final URI url;
     private final byte[] body;
     private final Headers headers;
     private final Cookies cookies;
@@ -32,7 +33,7 @@ public class Request {
 
     private final Proxy proxy;
 
-    Request(Method method, String url, Parameters parameters, Headers headers, InputStream in,
+    Request(Method method, URI url, Parameters parameters, Headers headers, InputStream in,
             List<MultiPart> files, byte[] body, AuthInfo authInfo,
             boolean gzip, boolean verify, Cookies cookies, boolean allowRedirects,
             int connectTimeout, int socketTimeout, Proxy proxy) {
@@ -59,7 +60,7 @@ public class Request {
         return method;
     }
 
-    public String getUrl() {
+    public URI getUrl() {
         return url;
     }
 

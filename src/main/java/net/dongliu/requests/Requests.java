@@ -5,31 +5,28 @@ import net.dongliu.requests.converter.ResponseConverter;
 import net.dongliu.requests.converter.StringResponseConverter;
 import net.dongliu.requests.exception.RuntimeIOException;
 import net.dongliu.requests.struct.*;
-import net.dongliu.requests.utils.Coder;
 import net.dongliu.requests.utils.Void;
 import org.apache.commons.io.Charsets;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CookieStore;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.entity.DeflateDecompressingEntity;
-import org.apache.http.client.entity.GzipDecompressingEntity;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.*;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.client.*;
+import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.http.message.BasicNameValuePair;
 
 import javax.net.ssl.KeyManager;
@@ -37,7 +34,6 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import java.io.File;
 import java.io.IOException;
-import java.net.HttpCookie;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
@@ -65,31 +61,30 @@ public class Requests<T> {
         RequestConfig.Builder configBuilder = RequestConfig.custom()
                 .setConnectTimeout(request.getConnectTimeout())
                 .setSocketTimeout(request.getSocketTimeout())
-                .setCookieSpec(CookieSpecs.BEST_MATCH);
+                .setCookieSpec(CookieSpecs.BROWSER_COMPATIBILITY);
         HttpClientBuilder clientBuilder = HttpClients.custom();
 
+        CredentialsProvider provider = new BasicCredentialsProvider();
         // basic auth
         if (request.getAuthInfo() != null) {
-            CredentialsProvider provider = new BasicCredentialsProvider();
             UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(
                     request.getAuthInfo().getUserName(), request.getAuthInfo().getPassword());
-            provider.setCredentials(AuthScope.ANY, credentials);
-            clientBuilder.setDefaultCredentialsProvider(provider);
+            provider.setCredentials(
+                    new AuthScope(request.getUrl().getHost(), request.getUrl().getPort()),
+                    credentials);
         }
-
         //proxy
         if (request.getProxy() != null) {
             //TODO: socket proxy support
             Proxy proxy = request.getProxy();
             if (proxy.getAuthInfo() != null) {
-                CredentialsProvider provider = new BasicCredentialsProvider();
                 provider.setCredentials(new AuthScope(proxy.getHost(), proxy.getPort()),
                         new UsernamePasswordCredentials(proxy.getUserName(), proxy.getPassword()));
-                clientBuilder.setDefaultCredentialsProvider(provider);
             }
             HttpHost httpHost = new HttpHost(proxy.getHost(), proxy.getPort(), proxy.getScheme());
             configBuilder.setProxy(httpHost);
         }
+        clientBuilder.setDefaultCredentialsProvider(provider);
 
         // accept all https
         if (!request.isVerify()) {
@@ -107,102 +102,75 @@ public class Requests<T> {
             clientBuilder.setSSLSocketFactory(sslsf);
         }
 
-        // set cookie header
-        Headers headers = request.getHeaders();
-        Cookies cookies = request.getCookies();
-        if (!cookies.isEmpty()) {
-            List<String> strs = new ArrayList<>(cookies.size());
-            for (Cookie cookie : cookies) {
-                strs.add(Coder.encode(cookie, "UTF-8"));
-            }
-            headers.add(Header.of("Cookie", StringUtils.join(strs, ";")));
+        // set cookie
+        CookieStore cookieStore = new BasicCookieStore();
+        HttpClientContext context = HttpClientContext.create();
+        context.setCookieStore(cookieStore);
+        clientBuilder.setDefaultCookieStore(cookieStore);
+
+        for (Cookie cookie : request.getCookies()) {
+            BasicClientCookie clientCookie = new BasicClientCookie(cookie.getName(),
+                    cookie.getValue());
+            clientCookie.setDomain(request.getUrl().getHost());
+            clientCookie.setPath("/");
+            cookieStore.addCookie(clientCookie);
         }
-        // set gzip header
-        if (request.isGzip()) {
-            headers.add(Header.of(Header.Accept_Encoding, Header.Accept_Encoding_COMPRESS));
+
+        // disable gzip
+        if (!request.isGzip()) {
+            clientBuilder.disableContentCompression();
         }
 
         HttpRequestBase httpRequest = buildRequest(request);
-        for (Header header : headers) {
-            httpRequest.addHeader(header.getName(), header.getValue());
-        }
         httpRequest.setConfig(configBuilder.build());
 
+        // get response
         Response<T> response = new Response<>();
         if (request.isAllowRedirects()) {
             clientBuilder.setRedirectStrategy(new CustomRedirectStrategy(response));
         } else {
             clientBuilder.disableRedirectHandling();
         }
+        response.setRequest(request);
 
-        //disable auto gzip handles
-        clientBuilder.disableContentCompression();
-
-        return doRequest(request, transformer, clientBuilder, response);
+        return request(httpRequest, transformer, clientBuilder.build(), context, response);
     }
 
-    private static <T> Response<T> doRequest(Request request, ResponseConverter<T> transformer,
-                                             HttpClientBuilder clientBuilder,
-                                             Response<T> response) {
-        try (CloseableHttpClient client = clientBuilder.build()) {
-            try (CloseableHttpResponse httpResponse = client.execute(buildRequest(request))) {
+    private static <T> Response<T> request(HttpRequestBase request,
+                                           ResponseConverter<T> transformer,
+                                           CloseableHttpClient client, HttpClientContext context,
+                                           Response<T> response) {
+        try {
+            try (CloseableHttpResponse httpResponse = client.execute(request, context)) {
                 response.setStatusCode(httpResponse.getStatusLine().getStatusCode());
+                // get headers
                 org.apache.http.Header[] respHeaders = httpResponse.getAllHeaders();
                 Headers headers = new Headers();
-                Cookies cookies = new Cookies();
                 for (org.apache.http.Header header : respHeaders) {
-                    headers.add(Header.of(header.getName(), header.getValue()));
-                    if (header.getName().equalsIgnoreCase("Set-Cookie")) {
-                        List<HttpCookie> httpCookies = HttpCookie.parse(
-                                header.getName() + ": " + header.getValue());
-                        for (HttpCookie httpCookie : httpCookies) {
-                            Cookie cookie = new Cookie();
-                            cookie.setDomain(httpCookie.getDomain());
-                            cookie.setName(httpCookie.getName());
-                            cookie.setPath(httpCookie.getPath());
-                            cookie.setValue(httpCookie.getValue());
-                            cookie.setExpiry(httpCookie.getMaxAge());
-                            cookies.add(cookie);
-                        }
-                    }
+                    headers.add(new Header(header.getName(), header.getValue()));
                 }
                 response.setHeaders(headers);
-                response.setCookies(cookies);
-                HttpEntity entity;
-                switch (useCompress(headers)) {
-                    case 1:
-                        entity = new GzipDecompressingEntity(httpResponse.getEntity());
-                        break;
-                    case 2:
-                        entity = new DeflateDecompressingEntity(httpResponse.getEntity());
-                        break;
-                    case 0:
-                    default:
-                        entity = httpResponse.getEntity();
-                }
 
+                // get cookies
+                Cookies cookies = new Cookies();
+                for (org.apache.http.cookie.Cookie c : context.getCookieStore().getCookies()) {
+                    Cookie cookie = new Cookie(c.getName(), c.getValue());
+                    cookie.setPath(c.getPath());
+                    cookie.setDomain(c.getDomain());
+                    cookie.setPath(c.getPath());
+                    cookie.setExpiry(c.getExpiryDate());
+                    cookies.add(cookie);
+                }
+                response.setCookies(cookies);
+                HttpEntity entity = httpResponse.getEntity();
                 T result = transformer.convert(entity);
                 response.setBody(result);
-                response.setRequest(request);
                 return response;
             }
         } catch (IOException e) {
             throw RuntimeIOException.of(e);
-        }
-    }
-
-    private static int useCompress(Headers headers) {
-        Header header = headers.getFirst("Content-Encoding");
-        if (header == null) {
-            return 0;
-        }
-        String ec = header.getValue().toLowerCase();
-        if (ec.contains("gzip")) {
-            return 1;
-        } else if (ec.contains("deflate")) {
-            return 2;
-        } else {
-            return 0;
+        } finally {
+            IOUtils.closeQuietly(client);
         }
     }
 
@@ -276,6 +244,7 @@ public class Requests<T> {
                 break;
             case TRACE:
             case CONNECT:
+            case PATCH:
             default:
                 throw new UnsupportedOperationException("Unsupported method:" + request.getMethod());
         }
@@ -284,12 +253,7 @@ public class Requests<T> {
 
 
     private static HttpRequestBase buildHttpPut(Request request) {
-        URIBuilder urlBuilder;
-        try {
-            urlBuilder = new URIBuilder(request.getUrl());
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
+        URIBuilder urlBuilder = new URIBuilder(request.getUrl());
         for (Parameter param : request.getParameters()) {
             urlBuilder.addParameter(param.getName(), param.getValue());
         }
@@ -349,37 +313,37 @@ public class Requests<T> {
                 paramList.add(new BasicNameValuePair(param.getName(), param.getValue()));
             }
             UrlEncodedFormEntity entity = new UrlEncodedFormEntity(paramList, Charsets.UTF_8);
-            request.getHeaders().add(Header.of(Header.CONTENT_TYPE, Header.CONTENT_TYPE_FORM));
+            request.getHeaders().add(new Header(Header.CONTENT_TYPE, Header.CONTENT_TYPE_FORM));
             httpPost.setEntity(entity);
             return httpPost;
         }
     }
 
-    private static HttpRequestBase buildHttpHead(String url, Parameters parameters) {
+    private static HttpRequestBase buildHttpHead(URI url, Parameters parameters) {
         URI uri = buildFullUrl(url, parameters);
         return new HttpHead(uri);
     }
 
-    private static HttpRequestBase buildHttpGet(String url, Parameters parameters) {
+    private static HttpRequestBase buildHttpGet(URI url, Parameters parameters) {
         URI uri = buildFullUrl(url, parameters);
         return new HttpGet(uri);
     }
 
-    private static HttpRequestBase buildHttpDelete(String url, Parameters parameters) {
+    private static HttpRequestBase buildHttpDelete(URI url, Parameters parameters) {
         URI uri = buildFullUrl(url, parameters);
         return new HttpDelete(uri);
     }
 
-    private static HttpRequestBase buildHttpOptions(String url, Parameters parameters) {
+    private static HttpRequestBase buildHttpOptions(URI url, Parameters parameters) {
         URI uri = buildFullUrl(url, parameters);
         return new HttpOptions(uri);
     }
 
     // build full url with parameters
-    private static URI buildFullUrl(String url, Parameters parameters) {
+    private static URI buildFullUrl(URI url, Parameters parameters) {
         try {
             if (parameters.isEmpty()) {
-                return new URI(url);
+                return url;
             }
             URIBuilder urlBuilder = new URIBuilder(url);
             for (Parameter param : parameters) {

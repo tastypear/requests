@@ -21,7 +21,7 @@ import java.util.Map;
  */
 public class RequestBuilder<T> {
     private Method method;
-    private String url;
+    private URI url;
     private byte[] body;
     private Parameters parameters = new Parameters();
     private Headers headers = new Headers();
@@ -49,7 +49,11 @@ public class RequestBuilder<T> {
     }
 
     public RequestBuilder<T> url(String url) {
-        this.url = url;
+        try {
+            this.url = new URI(url);
+        } catch (URISyntaxException e) {
+            throw InvalidUrlException.of(e);
+        }
         return this;
     }
 
@@ -133,7 +137,7 @@ public class RequestBuilder<T> {
      * add one parameter
      */
     public RequestBuilder<T> param(String key, Object value) {
-        this.parameters.add(Parameter.of(key, value));
+        this.parameters.add(new Parameter(key, value));
         return this;
     }
 
@@ -181,7 +185,7 @@ public class RequestBuilder<T> {
      * add one header
      */
     public RequestBuilder<T> header(String key, Object value) {
-        this.headers.add(Header.of(key, value));
+        this.headers.add(new Header(key, value));
         return this;
     }
 
@@ -275,7 +279,7 @@ public class RequestBuilder<T> {
      */
     public RequestBuilder<T> cookies(Map<String, String> cookies) {
         for (Map.Entry<String, String> entry : cookies.entrySet()) {
-            this.cookies.add(Cookie.of(entry.getKey(), entry.getValue()));
+            this.cookies.add(new Cookie(entry.getKey(), entry.getValue()));
         }
         return this;
     }
@@ -294,7 +298,7 @@ public class RequestBuilder<T> {
      * add cookie
      */
     public RequestBuilder<T> cookie(String name, String value) {
-        this.cookies.add(Cookie.of(name, value));
+        this.cookies.add(new Cookie(name, value));
         return this;
     }
 

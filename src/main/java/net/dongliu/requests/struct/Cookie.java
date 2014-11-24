@@ -1,5 +1,7 @@
 package net.dongliu.requests.struct;
 
+import java.util.Date;
+
 /**
  * http cookie
  *
@@ -9,19 +11,17 @@ public class Cookie extends Pair<String, String> {
 
     private String domain;
     private String path;
-    private long expiry;
+    private Date expiry;
 
-    public static Cookie of(String name, String value) {
-        Cookie cookie = new Cookie();
-        cookie.setName(name);
-        cookie.setValue(value);
-        return cookie;
+    public Cookie() {
     }
 
-    public static Cookie of(String value) {
-        Cookie cookie = new Cookie();
-        cookie.setValue(value);
-        return cookie;
+    public Cookie(String name, String value) {
+        super(name, value);
+    }
+
+    public Cookie(String value) {
+        super(null, value);
     }
 
     public String getPath() {
@@ -40,11 +40,11 @@ public class Cookie extends Pair<String, String> {
         this.domain = domain;
     }
 
-    public long getExpiry() {
+    public Date getExpiry() {
         return expiry;
     }
 
-    public void setExpiry(long expiry) {
+    public void setExpiry(Date expiry) {
         this.expiry = expiry;
     }
 }

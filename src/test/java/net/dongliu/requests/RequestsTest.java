@@ -30,7 +30,7 @@ public class RequestsTest {
     public void testCookie() {
         Response<String> response = Requests.string().url("http://www.baidu.com")
                 .cookie("test", "value").get();
-        assertEquals("test=value", response.getRequest().getHeaders().getFirst("Cookie").getValue());
+        //assertEquals("test=value", response.getRequest().getHeaders().getFirst("Cookie").getValue());
         assertTrue(response.getBody().contains("window"));
         assertNotNull(response.getCookies().getFirst("BAIDUID"));
     }

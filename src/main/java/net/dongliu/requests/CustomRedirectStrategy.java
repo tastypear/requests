@@ -40,7 +40,7 @@ class CustomRedirectStrategy implements RedirectStrategy {
         org.apache.http.Header[] respHeaders = response.getAllHeaders();
         Headers headers = new Headers();
         for (org.apache.http.Header header : respHeaders) {
-            headers.add(Header.of(header.getName(), header.getValue()));
+            headers.add(new Header(header.getName(), header.getValue()));
         }
         resp.setHeaders(headers);
         try {
