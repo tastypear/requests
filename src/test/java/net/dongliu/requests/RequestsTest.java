@@ -1,6 +1,6 @@
 package net.dongliu.requests;
 
-import net.dongliu.requests.struct.MultiPart;
+import net.dongliu.requests.struct.Parameter;
 import org.apache.commons.io.Charsets;
 import org.junit.Test;
 
@@ -23,6 +23,13 @@ public class RequestsTest {
         map.put("wd", "test");
         resp = Requests.get("http://www.baidu.com/s").params(map).text();
         assertEquals(200, resp.getStatusCode());
+    }
+
+    @Test
+    public void testPost() {
+        Response<String> response = Requests.post("http://www.baidu.com/")
+                .data(new Parameter("test", "value"))
+                .text();
     }
 
     @Test
@@ -68,7 +75,7 @@ public class RequestsTest {
     @Test
     public void testMultiPart() {
         Response<String> response = Requests.post("http://10.0.11.48:5000/upload")
-                .file("file", "/Users/dongliu/code/java/requests/src/test/java/net/dongliu/requests/RequestsTest.java")
+                .multiPart("file", "/Users/dongliu/code/java/requests/src/test/java/net/dongliu/requests/RequestsTest.java")
                 .text();
         System.out.println(response.getStatusCode());
         System.out.println(response.getBody());

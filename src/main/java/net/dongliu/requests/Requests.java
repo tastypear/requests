@@ -45,26 +45,26 @@ public class Requests {
         return newBuilder(url).method(Method.DELETE);
     }
 
-//    /**
-//     * options method
-//     */
-//    public static RequestBuilder options(String url) throws InvalidUrlException {
-//        return newBuilder(url).method(Method.OPTIONS);
-//    }
-//
-//    /**
-//     * patch method
-//     */
-//    public static RequestBuilder patch(String url) throws InvalidUrlException {
-//        return newBuilder(url).method(Method.PATCH);
-//    }
-//
-//    /**
-//     * trace method
-//     */
-//    public static RequestBuilder trace(String url) throws InvalidUrlException {
-//        return newBuilder(url).method(Method.TRACE);
-//    }
+    /**
+     * options method
+     */
+    public static RequestBuilder options(String url) throws InvalidUrlException {
+        return newBuilder(url).method(Method.OPTIONS);
+    }
+
+    /**
+     * patch method
+     */
+    public static RequestBuilder patch(String url) throws InvalidUrlException {
+        return newBuilder(url).method(Method.PATCH);
+    }
+
+    /**
+     * trace method
+     */
+    public static RequestBuilder trace(String url) throws InvalidUrlException {
+        return newBuilder(url).method(Method.TRACE);
+    }
 //
 //    /**
 //     * connect

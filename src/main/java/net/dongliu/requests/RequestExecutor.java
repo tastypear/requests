@@ -104,12 +104,14 @@ class RequestExecutor {
         context.setCookieStore(cookieStore);
         clientBuilder.setDefaultCookieStore(cookieStore);
 
-        for (Cookie cookie : request.getCookies()) {
-            BasicClientCookie clientCookie = new BasicClientCookie(cookie.getName(),
-                    cookie.getValue());
-            clientCookie.setDomain(request.getUrl().getHost());
-            clientCookie.setPath("/");
-            cookieStore.addCookie(clientCookie);
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                BasicClientCookie clientCookie = new BasicClientCookie(cookie.getName(),
+                        cookie.getValue());
+                clientCookie.setDomain(request.getUrl().getHost());
+                clientCookie.setPath("/");
+                cookieStore.addCookie(clientCookie);
+            }
         }
 
         // disable gzip
@@ -130,8 +132,10 @@ class RequestExecutor {
         httpRequest.setConfig(configBuilder.build());
 
         // set headers
-        for (Header header : request.getHeaders()) {
-            httpRequest.setHeader(header.getName(), header.getValue());
+        if (request.getHeaders() != null) {
+            for (Header header : request.getHeaders()) {
+                httpRequest.setHeader(header.getName(), header.getValue());
+            }
         }
 
         // do http request with http client
@@ -178,126 +182,110 @@ class RequestExecutor {
     }
 
     private HttpRequestBase buildRequest(Request request) {
-        HttpRequestBase httpRequest;
+        URI uri = buildFullUrl(request.getUrl(), request.getParameters());
         switch (request.getMethod()) {
             case POST:
-                httpRequest = buildHttpPost(request);
-                break;
+                return buildHttpPost(uri, request);
             case GET:
-                httpRequest = buildHttpGet(request.getUrl(), request.getParameters());
-                break;
+                return new HttpGet(uri);
             case HEAD:
-                httpRequest = buildHttpHead(request.getUrl(), request.getParameters());
-                break;
+                return new HttpHead(uri);
             case PUT:
-                httpRequest = buildHttpPut(request);
-                break;
+                return buildHttpPut(uri, request);
             case DELETE:
-                httpRequest = buildHttpDelete(request.getUrl(), request.getParameters());
-                break;
+                return new HttpDelete(uri);
             case OPTIONS:
-                httpRequest = buildHttpOptions(request.getUrl(), request.getParameters());
-                break;
+                return new HttpOptions(uri);
             case TRACE:
-            case CONNECT:
+                return new HttpTrace(uri);
             case PATCH:
+                return buildHttpPatch(uri, request);
+            case CONNECT:
             default:
                 throw new UnsupportedOperationException("Unsupported method:" + request.getMethod());
         }
-        return httpRequest;
     }
 
-    private HttpRequestBase buildHttpPut(Request request) {
-        URIBuilder urlBuilder = new URIBuilder(request.getUrl());
-        for (Parameter param : request.getParameters()) {
-            urlBuilder.addParameter(param.getName(), param.getValue());
-        }
-        URI uri;
-        try {
-            uri = urlBuilder.build();
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
+    private HttpRequestBase buildHttpPut(URI uri, Request request) {
         HttpPut httpPut = new HttpPut(uri);
         if (request.getBody() != null) {
             httpPut.setEntity(new ByteArrayEntity(request.getBody()));
         } else if (request.getIn() != null) {
             httpPut.setEntity(new InputStreamEntity(request.getIn()));
+        } else if (request.getParamBody() != null) {
+            // use www-form-urlencoded to send params
+            List<BasicNameValuePair> paramList = new ArrayList<>(request.getParamBody().size());
+            for (Parameter param : request.getParamBody()) {
+                paramList.add(new BasicNameValuePair(param.getName(), param.getValue()));
+            }
+            UrlEncodedFormEntity entity = new UrlEncodedFormEntity(paramList, Charsets.UTF_8);
+            httpPut.setEntity(entity);
         }
         return httpPut;
     }
 
 
-    private HttpPost buildHttpPost(Request request) {
+    private HttpPost buildHttpPost(URI uri, Request request) {
         int bodyCount = 0;
-        if (request.getFiles() != null) bodyCount++;
         if (request.getBody() != null) bodyCount++;
         if (request.getIn() != null) bodyCount++;
+        if (request.getParamBody() != null) bodyCount++;
+        if (request.getMultiParts() != null) bodyCount++;
         if (bodyCount > 1) {
             //can not set both
-            throw new RuntimeException("getBody and in cannot both be set");
+            throw new RuntimeException("More than one http request body have been set");
         }
 
-        if (request.getFiles() != null) {
+        HttpPost httpPost = new HttpPost(uri);
+        if (request.getMultiParts() != null) {
             MultipartEntityBuilder entityBuilder = MultipartEntityBuilder.create();
-            for (Parameter parameter : request.getParameters()) {
+            for (Parameter parameter : request.getParamBody()) {
                 entityBuilder.addTextBody(parameter.getName(), parameter.getValue());
             }
-            for (MultiPart f : request.getFiles()) {
+            for (MultiPart f : request.getMultiParts()) {
                 entityBuilder.addBinaryBody(f.getName(), f.getFile(),
                         ContentType.create(f.getMime()), f.getFileName());
             }
-            HttpPost httpPost = new HttpPost(request.getUrl());
             httpPost.setEntity(entityBuilder.build());
-            return httpPost;
         } else if (request.getBody() != null) {
-            URI uri = buildFullUrl(request.getUrl(), request.getParameters());
-            HttpPost httpPost = new HttpPost(uri);
             httpPost.setEntity(new ByteArrayEntity(request.getBody()));
-            return httpPost;
         } else if (request.getIn() != null) {
-            URI uri = buildFullUrl(request.getUrl(), request.getParameters());
-            HttpPost httpPost = new HttpPost(uri);
             httpPost.setEntity(new InputStreamEntity(request.getIn()));
-            return httpPost;
-        } else {
-            HttpPost httpPost = new HttpPost(request.getUrl());
+        } else if (request.getParamBody() != null) {
             // use www-form-urlencoded to send params
-            List<BasicNameValuePair> paramList = new ArrayList<>(request.getParameters().size());
-            for (Parameter param : request.getParameters()) {
+            List<BasicNameValuePair> paramList = new ArrayList<>(request.getParamBody().size());
+            for (Parameter param : request.getParamBody()) {
                 paramList.add(new BasicNameValuePair(param.getName(), param.getValue()));
             }
             UrlEncodedFormEntity entity = new UrlEncodedFormEntity(paramList, Charsets.UTF_8);
-            request.getHeaders().add(new Header(Header.CONTENT_TYPE, Header.CONTENT_TYPE_FORM));
             httpPost.setEntity(entity);
-            return httpPost;
         }
+        return httpPost;
     }
 
-    private HttpRequestBase buildHttpHead(URI url, Parameters parameters) {
-        URI uri = buildFullUrl(url, parameters);
-        return new HttpHead(uri);
-    }
 
-    private HttpRequestBase buildHttpGet(URI url, Parameters parameters) {
-        URI uri = buildFullUrl(url, parameters);
-        return new HttpGet(uri);
-    }
-
-    private HttpRequestBase buildHttpDelete(URI url, Parameters parameters) {
-        URI uri = buildFullUrl(url, parameters);
-        return new HttpDelete(uri);
-    }
-
-    private HttpRequestBase buildHttpOptions(URI url, Parameters parameters) {
-        URI uri = buildFullUrl(url, parameters);
-        return new HttpOptions(uri);
+    private HttpRequestBase buildHttpPatch(URI uri, Request request) {
+        HttpPatch httpPatch = new HttpPatch(uri);
+        if (request.getBody() != null) {
+            httpPatch.setEntity(new ByteArrayEntity(request.getBody()));
+        } else if (request.getIn() != null) {
+            httpPatch.setEntity(new InputStreamEntity(request.getIn()));
+        } else if (request.getParamBody() != null) {
+            // use www-form-urlencoded to send params
+            List<BasicNameValuePair> paramList = new ArrayList<>(request.getParamBody().size());
+            for (Parameter param : request.getParamBody()) {
+                paramList.add(new BasicNameValuePair(param.getName(), param.getValue()));
+            }
+            UrlEncodedFormEntity entity = new UrlEncodedFormEntity(paramList, Charsets.UTF_8);
+            httpPatch.setEntity(entity);
+        }
+        return httpPatch;
     }
 
     // build full url with parameters
     private URI buildFullUrl(URI url, Parameters parameters) {
         try {
-            if (parameters.isEmpty()) {
+            if (parameters == null || parameters.isEmpty()) {
                 return url;
             }
             URIBuilder urlBuilder = new URIBuilder(url);

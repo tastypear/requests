@@ -23,14 +23,17 @@ import java.util.Map;
 public class RequestBuilder {
     private Method method;
     private URI url;
-    private byte[] body;
-    private Parameters parameters = new Parameters();
-    private String userAgent = "Requests/1.6.1, Java";
-    private Headers headers = new Headers();
+    private Parameters parameters;
+    private String userAgent = "Requests/1.6.5, Java";
+    private Headers headers;
     // send cookie values
-    private Cookies cookies = new Cookies();
-    // http multi part post request files
-    private List<MultiPart> files = new ArrayList<>();
+    private Cookies cookies;
+
+    private byte[] body;
+    // parameter type body(form-encoded)
+    private Parameters paramBody;
+    // http multi part post request multiParts
+    private List<MultiPart> multiParts;
     // http request body from inputStream
     private InputStream in;
 
@@ -106,7 +109,7 @@ public class RequestBuilder {
     }
 
     Request build() {
-        return new Request(method, url, parameters, userAgent, headers, in, files, body,
+        return new Request(method, url, parameters, userAgent, headers, in, multiParts, body, paramBody,
                 authInfo, gzip, verify, cookies, allowRedirects,
                 connectTimeout, socketTimeout, proxy);
     }
@@ -123,8 +126,9 @@ public class RequestBuilder {
      * add parameters
      */
     public RequestBuilder params(Map<String, ?> params) {
+        ensureParameters();
         for (Map.Entry<String, ?> entry : params.entrySet()) {
-            this.param(entry.getKey(), entry.getValue());
+            this.parameters.add(new Parameter(entry.getKey(), entry.getValue()));
         }
         return this;
     }
@@ -133,8 +137,9 @@ public class RequestBuilder {
      * add params
      */
     public RequestBuilder params(Parameter... params) {
+        ensureParameters();
         for (Parameter param : params) {
-            this.param(param.getName(), param.getValue());
+            this.parameters.add(new Parameter(param.getName(), param.getValue()));
         }
         return this;
     }
@@ -143,8 +148,52 @@ public class RequestBuilder {
      * add one parameter
      */
     public RequestBuilder param(String key, Object value) {
+        ensureParameters();
         this.parameters.add(new Parameter(key, value));
         return this;
+    }
+
+    private void ensureParameters() {
+        if (this.parameters == null) {
+            this.parameters = new Parameters();
+        }
+    }
+
+    /**
+     * set http data for requests
+     */
+    public RequestBuilder data(Map<String, ?> data) {
+        ensureParamBody();
+        for (Map.Entry<String, ?> e : data.entrySet()) {
+            paramBody.add(new Parameter(e.getKey(), e.getValue()));
+        }
+        return this;
+    }
+
+    /**
+     * set http data for requests
+     */
+    public RequestBuilder data(Parameter... params) {
+        ensureParamBody();
+        for (Parameter param : params) {
+            paramBody.add(param);
+        }
+        return this;
+    }
+
+    /**
+     * add one key-value param to http data for requests
+     */
+    public RequestBuilder data(String key, Object value) {
+        ensureParamBody();
+        paramBody.add(new Parameter(key, value));
+        return this;
+    }
+
+    private void ensureParamBody() {
+        if (this.paramBody == null) {
+            this.paramBody = new Parameters();
+        }
     }
 
     /**
@@ -181,8 +230,20 @@ public class RequestBuilder {
      * add headers
      */
     public RequestBuilder headers(Map<String, ?> params) {
+        ensureHeaders();
         for (Map.Entry<String, ?> entry : params.entrySet()) {
-            this.header(entry.getKey(), entry.getValue());
+            this.headers.add(new Header(entry.getKey(), entry.getValue()));
+        }
+        return this;
+    }
+
+    /**
+     * add headers
+     */
+    public RequestBuilder headers(Header... headers) {
+        ensureHeaders();
+        for (Header header : headers) {
+            this.headers.add(header);
         }
         return this;
     }
@@ -191,8 +252,15 @@ public class RequestBuilder {
      * add one header
      */
     public RequestBuilder header(String key, Object value) {
+        ensureHeaders();
         this.headers.add(new Header(key, value));
         return this;
+    }
+
+    private void ensureHeaders() {
+        if (this.headers == null) {
+            this.headers = new Headers();
+        }
     }
 
     /**
@@ -276,6 +344,7 @@ public class RequestBuilder {
      * add cookies
      */
     public RequestBuilder cookies(Map<String, String> cookies) {
+        ensureCookies();
         for (Map.Entry<String, String> entry : cookies.entrySet()) {
             this.cookies.add(new Cookie(entry.getKey(), entry.getValue()));
         }
@@ -286,6 +355,7 @@ public class RequestBuilder {
      * add cookies
      */
     public RequestBuilder cookies(Cookie... cookies) {
+        ensureCookies();
         for (Cookie cookie : cookies) {
             this.cookies.add(cookie);
         }
@@ -296,8 +366,15 @@ public class RequestBuilder {
      * add cookie
      */
     public RequestBuilder cookie(String name, String value) {
+        ensureCookies();
         this.cookies.add(new Cookie(name, value));
         return this;
+    }
+
+    private void ensureCookies() {
+        if (this.cookies == null) {
+            this.cookies = new Cookies();
+        }
     }
 
     /**
@@ -319,38 +396,52 @@ public class RequestBuilder {
     }
 
     /**
-     * add multi part file, will send multipart requests
+     * add multi part file, will send multiPart requests.
+     * this should be used with post method
      */
-    public RequestBuilder files(List<MultiPart> files) {
-        this.files.addAll(files);
+    public RequestBuilder multiPart(List<MultiPart> files) {
+        ensureMultiPart();
+        this.multiParts.addAll(files);
         return this;
     }
 
     /**
-     * add multi part file, will send multipart requests
+     * add multi part file, will send multiPart requests.
+     * this should be used with post method
      */
-    public RequestBuilder files(MultiPart... files) {
-        Collections.addAll(this.files, files);
+    public RequestBuilder multiPart(MultiPart... files) {
+        ensureMultiPart();
+        Collections.addAll(this.multiParts, files);
         return this;
     }
 
     /**
-     * add multi part file, will send multipart requests
+     * add multi part file, will send multiPart requests.
+     * this should be used with post method
      */
-    public RequestBuilder file(MultiPart file) {
-        this.files.add(file);
+    public RequestBuilder multiPart(MultiPart file) {
+        ensureMultiPart();
+        this.multiParts.add(file);
         return this;
     }
 
     /**
-     * add multi part file, will send multipart requests
+     * add multi part file, will send multiPart requests.
+     * this should be used with post method
      *
      * @param name     the http request field name for this file
      * @param filePath the file path
      * @return
      */
-    public RequestBuilder file(String name, String filePath) {
-        this.files.add(MultiPart.of(name, filePath));
+    public RequestBuilder multiPart(String name, String filePath) {
+        ensureMultiPart();
+        this.multiParts.add(new MultiPart(name, filePath));
         return this;
+    }
+
+    private void ensureMultiPart() {
+        if (this.multiParts == null) {
+            this.multiParts = new ArrayList<>();
+        }
     }
 }

@@ -16,32 +16,20 @@ public class MultiPart {
 
     /**
      * get multipart from file path
-     *
-     * @param path
-     * @return
      */
-    public static MultiPart of(String fieldName, String path) {
-        File file = new File(path);
-        MultiPart multiPart = new MultiPart();
-        multiPart.setFile(file);
-        multiPart.setName(fieldName);
-        multiPart.setMime(URLConnection.guessContentTypeFromName(file.getName()));
-        return multiPart;
+    public MultiPart(String fieldName, String path) {
+        this.file = new File(path);
+        this.name = fieldName;
+        this.mime = URLConnection.guessContentTypeFromName(file.getName());
     }
 
     /**
      * get multipart from file path
-     *
-     * @param path
-     * @return
      */
-    public static MultiPart of(String fieldName, String path, String mime) {
-        File file = new File(path);
-        MultiPart multiPart = new MultiPart();
-        multiPart.setFile(file);
-        multiPart.setName(fieldName);
-        multiPart.setMime(mime);
-        return multiPart;
+    public MultiPart(String fieldName, String path, String mime) {
+        this.file = new File(path);
+        this.name = fieldName;
+        this.mime = mime;
     }
 
     public String getName() {

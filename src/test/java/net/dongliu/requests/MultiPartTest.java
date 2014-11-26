@@ -7,6 +7,6 @@ public class MultiPartTest {
 
     @Test
     public void testOf() throws Exception {
-        MultiPart multiPart = MultiPart.of("file", "MultiPartTest.java");
+        MultiPart multiPart = new MultiPart("file", "MultiPartTest.java");
     }
 }
