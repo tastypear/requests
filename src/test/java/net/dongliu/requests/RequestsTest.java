@@ -13,23 +13,22 @@ public class RequestsTest {
 
     @Test
     public void testGet() throws Exception {
-        Response<String> response = Requests.text(Charsets.UTF_8).url("http://www.baidu.com")
-                .get();
+        Response<String> response = Requests.get("http://www.baidu.com").text(Charsets.UTF_8);
         assertEquals(200, response.getStatusCode());
 
-        Response<String> resp = Requests.text().url("http://www.baidu.com").get();
+        Response<String> resp = Requests.get("http://www.baidu.com").text();
         assertEquals(200, resp.getStatusCode());
 
         Map<String, String> map = new HashMap<>();
         map.put("wd", "test");
-        resp = Requests.text().url("http://www.baidu.com/s").params(map).get();
+        resp = Requests.get("http://www.baidu.com/s").params(map).text();
         assertEquals(200, resp.getStatusCode());
     }
 
     @Test
     public void testCookie() {
-        Response<String> response = Requests.text().url("http://www.baidu.com")
-                .cookie("test", "value").get();
+        Response<String> response = Requests.get("http://www.baidu.com")
+                .cookie("test", "value").text();
         //assertEquals("test=value", response.getRequest().getHeaders().getFirst("Cookie").getValue());
         assertTrue(response.getBody().contains("window"));
         assertNotNull(response.getCookies().getFirst("BAIDUID"));
@@ -46,15 +45,14 @@ public class RequestsTest {
 
     @Test
     public void testHttps() {
-        Response<String> resp = Requests.text().url("https://kyfw.12306.cn/otn/")
-                .verify(false).get();
+        Response<String> resp = Requests.get("https://kyfw.12306.cn/otn/")
+                .verify(false).text();
         assertEquals(200, resp.getStatusCode());
     }
 
     @Test
     public void testRedirect() {
-        Response<String> resp = Requests.text().url("http://www.dongliu.net/")
-                .get();
+        Response<String> resp = Requests.get("http://www.dongliu.net/").text();
         assertEquals(200, resp.getStatusCode());
         assertEquals(301, resp.getHistory().get(0).getStatusCode());
     }
@@ -69,10 +67,9 @@ public class RequestsTest {
 
     @Test
     public void testMultiPart() {
-        Response<String> response = Requests.text().url("http://10.0.11.48:5000/upload")
-                .files(MultiPart.of("file",
-                        "/Users/dongliu/code/java/requests/src/test/java/net/dongliu/requests/RequestsTest.java"))
-                .post();
+        Response<String> response = Requests.post("http://10.0.11.48:5000/upload")
+                .file("file", "/Users/dongliu/code/java/requests/src/test/java/net/dongliu/requests/RequestsTest.java")
+                .text();
         System.out.println(response.getStatusCode());
         System.out.println(response.getBody());
     }

@@ -1,10 +1,13 @@
 package net.dongliu.requests;
 
-import net.dongliu.requests.converter.ResponseConverter;
+import net.dongliu.requests.converter.FileResponseProcessor;
+import net.dongliu.requests.converter.ResponseProcessor;
+import net.dongliu.requests.converter.StringResponseProcessor;
 import net.dongliu.requests.exception.InvalidUrlException;
 import net.dongliu.requests.exception.RuntimeIOException;
 import net.dongliu.requests.struct.*;
 
+import java.io.File;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -16,10 +19,8 @@ import java.util.Map;
 
 /**
  * http requests builder
- *
- * @param <T> the response content type
  */
-public class RequestBuilder<T> {
+public class RequestBuilder {
     private Method method;
     private URI url;
     private byte[] body;
@@ -36,7 +37,6 @@ public class RequestBuilder<T> {
     private int connectTimeout = 10_000;
     private int socketTimeout = 10_000;
 
-    private ResponseConverter<T> transformer;
     private boolean gzip = true;
     // if check ssl certificate
     private boolean verify = true;
@@ -49,7 +49,54 @@ public class RequestBuilder<T> {
     RequestBuilder() {
     }
 
-    public RequestBuilder<T> url(String url) {
+    /**
+     * get http response for return result with Type T.
+     */
+    public <T> Response<T> client(ResponseProcessor<T> transformer) throws RuntimeIOException {
+        return new RequestExecutor(build()).executeWith(transformer);
+    }
+
+    /**
+     * get http response for return text result, use default encoding.
+     */
+    public Response<String> text() throws RuntimeIOException {
+        return client(ResponseProcessor.string);
+    }
+
+    /**
+     * get http response for return text result.
+     *
+     * @param charset the encoding to use if not found in response header
+     */
+    public Response<String> text(Charset charset) throws RuntimeIOException {
+        return client(new StringResponseProcessor(charset));
+    }
+
+    /**
+     * get http response for return text result.
+     *
+     * @param charset the encoding to use if not found in response header
+     */
+    public Response<String> text(String charset) throws RuntimeIOException {
+        return text(Charset.forName(charset));
+    }
+
+    /**
+     * get http response for return byte array result.
+     */
+    public Response<byte[]> bytes() throws RuntimeIOException {
+        return client(ResponseProcessor.bytes);
+    }
+
+    /**
+     * get http response for write response body to file.
+     * only save to file when return status is 200, otherwise return response with null body
+     */
+    public Response<File> file(File file) throws RuntimeIOException {
+        return client(new FileResponseProcessor(file));
+    }
+
+    RequestBuilder url(String url) throws InvalidUrlException {
         try {
             this.url = new URI(url);
         } catch (URISyntaxException e) {
@@ -65,49 +112,9 @@ public class RequestBuilder<T> {
     }
 
     /**
-     * get url, and return content
-     */
-    public Response<T> get() throws RuntimeIOException {
-        Request request = method(Method.GET).build();
-        return Requests.execute(request, this.transformer);
-    }
-
-    /**
-     * get url, and return content
-     */
-    public Response<T> head() throws RuntimeIOException {
-        Request request = method(Method.HEAD).build();
-        return Requests.execute(request, this.transformer);
-    }
-
-    /**
-     * get url, and return content
-     */
-    public Response<T> post() throws RuntimeIOException {
-        Request request = method(Method.POST).build();
-        return Requests.execute(request, this.transformer);
-    }
-
-    /**
-     * put method
-     */
-    public Response<T> put() throws RuntimeIOException {
-        Request request = method(Method.PUT).build();
-        return Requests.execute(request, this.transformer);
-    }
-
-    /**
-     * delete method
-     */
-    public Response<T> delete() throws RuntimeIOException {
-        Request request = method(Method.DELETE).build();
-        return Requests.execute(request, this.transformer);
-    }
-
-    /**
      * set userAgent
      */
-    public RequestBuilder<T> userAgent(String userAgent) {
+    public RequestBuilder userAgent(String userAgent) {
         this.userAgent = userAgent;
         return this;
     }
@@ -115,7 +122,7 @@ public class RequestBuilder<T> {
     /**
      * add parameters
      */
-    public RequestBuilder<T> params(Map<String, ?> params) {
+    public RequestBuilder params(Map<String, ?> params) {
         for (Map.Entry<String, ?> entry : params.entrySet()) {
             this.param(entry.getKey(), entry.getValue());
         }
@@ -125,7 +132,7 @@ public class RequestBuilder<T> {
     /**
      * add params
      */
-    public RequestBuilder<T> params(Parameter... params) {
+    public RequestBuilder params(Parameter... params) {
         for (Parameter param : params) {
             this.param(param.getName(), param.getValue());
         }
@@ -135,7 +142,7 @@ public class RequestBuilder<T> {
     /**
      * add one parameter
      */
-    public RequestBuilder<T> param(String key, Object value) {
+    public RequestBuilder param(String key, Object value) {
         this.parameters.add(new Parameter(key, value));
         return this;
     }
@@ -145,7 +152,7 @@ public class RequestBuilder<T> {
      *
      * @param data the data to post
      */
-    public RequestBuilder<T> data(byte[] data) {
+    public RequestBuilder data(byte[] data) {
         this.body = data;
         return this;
     }
@@ -153,7 +160,7 @@ public class RequestBuilder<T> {
     /**
      * set http data from inputStream for Post/Put requests
      */
-    public RequestBuilder<T> data(InputStream in) {
+    public RequestBuilder data(InputStream in) {
         this.in = in;
         return this;
     }
@@ -161,11 +168,11 @@ public class RequestBuilder<T> {
     /**
      * set http data with text
      */
-    public RequestBuilder<T> data(String body, Charset charset) {
+    public RequestBuilder data(String body, Charset charset) {
         return data(body.getBytes(charset));
     }
 
-    private RequestBuilder<T> method(Method method) {
+    RequestBuilder method(Method method) {
         this.method = method;
         return this;
     }
@@ -173,7 +180,7 @@ public class RequestBuilder<T> {
     /**
      * add headers
      */
-    public RequestBuilder<T> headers(Map<String, ?> params) {
+    public RequestBuilder headers(Map<String, ?> params) {
         for (Map.Entry<String, ?> entry : params.entrySet()) {
             this.header(entry.getKey(), entry.getValue());
         }
@@ -183,23 +190,15 @@ public class RequestBuilder<T> {
     /**
      * add one header
      */
-    public RequestBuilder<T> header(String key, Object value) {
+    public RequestBuilder header(String key, Object value) {
         this.headers.add(new Header(key, value));
-        return this;
-    }
-
-    /**
-     * set transformer. default is String transformer
-     */
-    RequestBuilder<T> transformer(ResponseConverter<T> transformer) {
-        this.transformer = transformer;
         return this;
     }
 
     /**
      * set socket connect and read timeout in milliseconds. default is 10_000
      */
-    public RequestBuilder<T> timeout(int timeout) {
+    public RequestBuilder timeout(int timeout) {
         this.socketTimeout = this.connectTimeout = timeout;
         return this;
     }
@@ -207,7 +206,7 @@ public class RequestBuilder<T> {
     /**
      * set socket connect and read timeout in milliseconds. default is 10_000
      */
-    public RequestBuilder<T> timeout(int connectTimeout, int socketTimeout) {
+    public RequestBuilder timeout(int connectTimeout, int socketTimeout) {
         this.connectTimeout = connectTimeout;
         this.socketTimeout = socketTimeout;
         return this;
@@ -222,7 +221,7 @@ public class RequestBuilder<T> {
      * </pre>
      * TODO: socket proxy
      */
-    public RequestBuilder<T> proxy(String proxyUrl) throws InvalidUrlException {
+    public RequestBuilder proxy(String proxyUrl) throws InvalidUrlException {
         if (proxyUrl == null) {
             return null;
         }
@@ -252,7 +251,7 @@ public class RequestBuilder<T> {
     /**
      * if send gzip requests. default true
      */
-    public RequestBuilder<T> gzip(boolean gzip) {
+    public RequestBuilder gzip(boolean gzip) {
         this.gzip = gzip;
         return this;
     }
@@ -260,7 +259,7 @@ public class RequestBuilder<T> {
     /**
      * set false to disable ssl check for https requests
      */
-    public RequestBuilder<T> verify(boolean verify) {
+    public RequestBuilder verify(boolean verify) {
         this.verify = verify;
         return this;
     }
@@ -268,7 +267,7 @@ public class RequestBuilder<T> {
     /**
      * set http basic auth info
      */
-    public RequestBuilder<T> auth(String userName, String password) {
+    public RequestBuilder auth(String userName, String password) {
         authInfo = new AuthInfo(userName, password);
         return this;
     }
@@ -276,7 +275,7 @@ public class RequestBuilder<T> {
     /**
      * add cookies
      */
-    public RequestBuilder<T> cookies(Map<String, String> cookies) {
+    public RequestBuilder cookies(Map<String, String> cookies) {
         for (Map.Entry<String, String> entry : cookies.entrySet()) {
             this.cookies.add(new Cookie(entry.getKey(), entry.getValue()));
         }
@@ -286,7 +285,7 @@ public class RequestBuilder<T> {
     /**
      * add cookies
      */
-    public RequestBuilder<T> cookies(Cookie... cookies) {
+    public RequestBuilder cookies(Cookie... cookies) {
         for (Cookie cookie : cookies) {
             this.cookies.add(cookie);
         }
@@ -296,7 +295,7 @@ public class RequestBuilder<T> {
     /**
      * add cookie
      */
-    public RequestBuilder<T> cookie(String name, String value) {
+    public RequestBuilder cookie(String name, String value) {
         this.cookies.add(new Cookie(name, value));
         return this;
     }
@@ -304,7 +303,7 @@ public class RequestBuilder<T> {
     /**
      * if follow redirect
      */
-    public RequestBuilder<T> allowRedirects(boolean allowRedirects) {
+    public RequestBuilder allowRedirects(boolean allowRedirects) {
         this.allowRedirects = allowRedirects;
         return this;
     }
@@ -313,28 +312,45 @@ public class RequestBuilder<T> {
      * set cert path
      * TODO: custom cert
      */
-    public RequestBuilder<T> cert(String... cert) {
+    public RequestBuilder cert(String... cert) {
         throw new UnsupportedOperationException();
 //        this.cert = cert;
 //        return this;
     }
 
     /**
-     * add multi part file, send multipart requests
+     * add multi part file, will send multipart requests
      */
-    public RequestBuilder<T> files(List<MultiPart> files) {
+    public RequestBuilder files(List<MultiPart> files) {
         this.files.addAll(files);
         return this;
     }
 
     /**
-     * add multi part file, send multipart requests
+     * add multi part file, will send multipart requests
+     */
+    public RequestBuilder files(MultiPart... files) {
+        Collections.addAll(this.files, files);
+        return this;
+    }
+
+    /**
+     * add multi part file, will send multipart requests
+     */
+    public RequestBuilder file(MultiPart file) {
+        this.files.add(file);
+        return this;
+    }
+
+    /**
+     * add multi part file, will send multipart requests
      *
-     * @param files
+     * @param name     the http request field name for this file
+     * @param filePath the file path
      * @return
      */
-    public RequestBuilder<T> files(MultiPart... files) {
-        Collections.addAll(this.files, files);
+    public RequestBuilder file(String name, String filePath) {
+        this.files.add(MultiPart.of(name, filePath));
         return this;
     }
 }

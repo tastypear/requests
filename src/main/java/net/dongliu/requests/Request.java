@@ -7,6 +7,8 @@ import java.net.URI;
 import java.util.List;
 
 /**
+ * Http request
+ *
  * @author Dong Liu dongliu@live.cn
  */
 public class Request {
