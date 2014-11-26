@@ -24,6 +24,7 @@ public class RequestBuilder<T> {
     private URI url;
     private byte[] body;
     private Parameters parameters = new Parameters();
+    private String userAgent = "Requests/1.6.1, Java";
     private Headers headers = new Headers();
     // send cookie values
     private Cookies cookies = new Cookies();
@@ -58,7 +59,7 @@ public class RequestBuilder<T> {
     }
 
     Request build() {
-        return new Request(method, url, parameters, headers, in, files, body,
+        return new Request(method, url, parameters, userAgent, headers, in, files, body,
                 authInfo, gzip, verify, cookies, allowRedirects,
                 connectTimeout, socketTimeout, proxy);
     }
@@ -107,9 +108,7 @@ public class RequestBuilder<T> {
      * set userAgent
      */
     public RequestBuilder<T> userAgent(String userAgent) {
-        if (userAgent != null) {
-            header("User-Agent", userAgent);
-        }
+        this.userAgent = userAgent;
         return this;
     }
 

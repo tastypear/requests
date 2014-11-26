@@ -17,18 +17,18 @@ public class RequestsTest {
                 .get();
         assertEquals(200, response.getStatusCode());
 
-        Response<String> resp = Requests.string().url("http://www.baidu.com").get();
+        Response<String> resp = Requests.text().url("http://www.baidu.com").get();
         assertEquals(200, resp.getStatusCode());
 
         Map<String, String> map = new HashMap<>();
         map.put("wd", "test");
-        resp = Requests.string().url("http://www.baidu.com/s").params(map).get();
+        resp = Requests.text().url("http://www.baidu.com/s").params(map).get();
         assertEquals(200, resp.getStatusCode());
     }
 
     @Test
     public void testCookie() {
-        Response<String> response = Requests.string().url("http://www.baidu.com")
+        Response<String> response = Requests.text().url("http://www.baidu.com")
                 .cookie("test", "value").get();
         //assertEquals("test=value", response.getRequest().getHeaders().getFirst("Cookie").getValue());
         assertTrue(response.getBody().contains("window"));
@@ -46,14 +46,14 @@ public class RequestsTest {
 
     @Test
     public void testHttps() {
-        Response<String> resp = Requests.string().url("https://kyfw.12306.cn/otn/")
+        Response<String> resp = Requests.text().url("https://kyfw.12306.cn/otn/")
                 .verify(false).get();
         assertEquals(200, resp.getStatusCode());
     }
 
     @Test
     public void testRedirect() {
-        Response<String> resp = Requests.string().url("http://www.dongliu.net/")
+        Response<String> resp = Requests.text().url("http://www.dongliu.net/")
                 .get();
         assertEquals(200, resp.getStatusCode());
         assertEquals(301, resp.getHistory().get(0).getStatusCode());
@@ -69,7 +69,7 @@ public class RequestsTest {
 
     @Test
     public void testMultiPart() {
-        Response<String> response = Requests.string().url("http://10.0.11.48:5000/upload")
+        Response<String> response = Requests.text().url("http://10.0.11.48:5000/upload")
                 .files(MultiPart.of("file",
                         "/Users/dongliu/code/java/requests/src/test/java/net/dongliu/requests/RequestsTest.java"))
                 .post();

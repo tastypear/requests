@@ -5,7 +5,7 @@ apply plugin: 'signing'
 sourceCompatibility = 1.7
 targetCompatibility = 1.7
 group = 'net.dongliu'
-version = '1.6.0'
+version = '1.6.2'
 
 repositories {
     mavenCentral()
@@ -17,7 +17,7 @@ dependencies {
             'commons-io:commons-io:2.4',
             'org.apache.commons:commons-lang3:3.3.2',
             'org.slf4j:slf4j-api:1.7.7'
-    testCompile 'junit:junit:4.+'
+    testCompile 'junit:junit:4.11'
 }
 
 task javadocJar(type: Jar) {

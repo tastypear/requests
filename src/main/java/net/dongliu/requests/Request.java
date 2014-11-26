@@ -14,6 +14,7 @@ public class Request {
     private final Method method;
     private final URI url;
     private final byte[] body;
+    private final String userAgent;
     private final Headers headers;
     private final Cookies cookies;
     private final Parameters parameters;
@@ -33,13 +34,14 @@ public class Request {
 
     private final Proxy proxy;
 
-    Request(Method method, URI url, Parameters parameters, Headers headers, InputStream in,
-            List<MultiPart> files, byte[] body, AuthInfo authInfo,
+    Request(Method method, URI url, Parameters parameters, String userAgent, Headers headers,
+            InputStream in, List<MultiPart> files, byte[] body, AuthInfo authInfo,
             boolean gzip, boolean verify, Cookies cookies, boolean allowRedirects,
             int connectTimeout, int socketTimeout, Proxy proxy) {
         this.method = method;
         this.url = url;
         this.parameters = parameters;
+        this.userAgent = userAgent;
         this.files = files;
         this.body = body;
         this.in = in;
@@ -55,7 +57,6 @@ public class Request {
 
     }
 
-
     public Method getMethod() {
         return method;
     }
@@ -66,6 +67,10 @@ public class Request {
 
     public byte[] getBody() {
         return body;
+    }
+
+    public String getUserAgent() {
+        return userAgent;
     }
 
     public Headers getHeaders() {

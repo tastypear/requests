@@ -46,10 +46,9 @@ import java.util.List;
 /**
  * construct and execute http requests
  *
- * @param <T> the response Type
  * @author Dong Liu
  */
-public class Requests<T> {
+public class Requests {
 
     /**
      * execute http requests, and get result
@@ -62,7 +61,7 @@ public class Requests<T> {
                 .setConnectTimeout(request.getConnectTimeout())
                 .setSocketTimeout(request.getSocketTimeout())
                 .setCookieSpec(CookieSpecs.BROWSER_COMPATIBILITY);
-        HttpClientBuilder clientBuilder = HttpClients.custom();
+        HttpClientBuilder clientBuilder = HttpClients.custom().setUserAgent(request.getUserAgent());
 
         CredentialsProvider provider = new BasicCredentialsProvider();
         // basic auth
@@ -121,9 +120,6 @@ public class Requests<T> {
             clientBuilder.disableContentCompression();
         }
 
-        HttpRequestBase httpRequest = buildRequest(request);
-        httpRequest.setConfig(configBuilder.build());
-
         // get response
         Response<T> response = new Response<>();
         if (request.isAllowRedirects()) {
@@ -132,6 +128,14 @@ public class Requests<T> {
             clientBuilder.disableRedirectHandling();
         }
         response.setRequest(request);
+
+        HttpRequestBase httpRequest = buildRequest(request);
+        httpRequest.setConfig(configBuilder.build());
+
+        // set headers
+        for (Header header : request.getHeaders()) {
+            httpRequest.setHeader(header.getName(), header.getValue());
+        }
 
         return request(httpRequest, transformer, clientBuilder.build(), context, response);
     }
@@ -184,7 +188,7 @@ public class Requests<T> {
     /**
      * get one requests client for return text result, use default encoding.
      */
-    public static RequestBuilder<String> string() {
+    public static RequestBuilder<String> text() {
         return client(ResponseConverter.string);
     }
 
