@@ -1,8 +1,5 @@
 package net.dongliu.requests;
 
-import net.dongliu.requests.converter.FileResponseProcessor;
-import net.dongliu.requests.converter.ResponseProcessor;
-import net.dongliu.requests.converter.StringResponseProcessor;
 import net.dongliu.requests.exception.InvalidUrlException;
 import net.dongliu.requests.exception.RuntimeIOException;
 import net.dongliu.requests.struct.*;
@@ -49,14 +46,23 @@ public class RequestBuilder {
     private String[] cert;
     private Proxy proxy;
 
+    private Session session;
+
     RequestBuilder() {
     }
 
     /**
      * get http response for return result with Type T.
      */
-    public <T> Response<T> client(ResponseProcessor<T> transformer) throws RuntimeIOException {
-        return new RequestExecutor(build()).executeWith(transformer);
+    <T> Response<T> client(ResponseProcessor<T> processor) throws RuntimeIOException {
+        return new RequestExecutor<>(build(), processor).execute();
+    }
+
+    /**
+     * set custom handler to handle http response
+     */
+    public <T> Response<T> handler(ResponseHandler<T> handler) throws RuntimeIOException {
+        return client(new ResponseHandlerAdapter<T>(handler));
     }
 
     /**
@@ -93,10 +99,18 @@ public class RequestBuilder {
 
     /**
      * get http response for write response body to file.
-     * only save to file when return status is 200, otherwise return response with null body
+     * only save to file when return status is 200, otherwise return response with null body.
      */
     public Response<File> file(File file) throws RuntimeIOException {
         return client(new FileResponseProcessor(file));
+    }
+
+    /**
+     * get http response for write response body to file.
+     * only save to file when return status is 200, otherwise return response with null body.
+     */
+    public Response<File> file(String filePath) throws RuntimeIOException {
+        return client(new FileResponseProcessor(filePath));
     }
 
     RequestBuilder url(String url) throws InvalidUrlException {
@@ -109,9 +123,9 @@ public class RequestBuilder {
     }
 
     Request build() {
-        return new Request(method, url, parameters, userAgent, headers, in, multiParts, body, paramBody,
-                authInfo, gzip, verify, cookies, allowRedirects,
-                connectTimeout, socketTimeout, proxy);
+        return new Request(method, url, parameters, userAgent, headers, in, multiParts, body,
+                paramBody, authInfo, gzip, verify, cookies, allowRedirects,
+                connectTimeout, socketTimeout, proxy, session);
     }
 
     /**
@@ -264,7 +278,9 @@ public class RequestBuilder {
     }
 
     /**
-     * set socket connect and read timeout in milliseconds. default is 10_000
+     * set socket connect and read timeout in milliseconds. default is 10_000.
+     * A timeout value of zero is interpreted as an infinite timeout.
+     * A negative value is interpreted as undefined (system default).
      */
     public RequestBuilder timeout(int timeout) {
         this.socketTimeout = this.connectTimeout = timeout;
@@ -272,7 +288,9 @@ public class RequestBuilder {
     }
 
     /**
-     * set socket connect and read timeout in milliseconds. default is 10_000
+     * set socket connect and read timeout in milliseconds. default is 10_000.
+     * A timeout value of zero is interpreted as an infinite timeout.
+     * A negative value is interpreted as undefined (system default).
      */
     public RequestBuilder timeout(int connectTimeout, int socketTimeout) {
         this.connectTimeout = connectTimeout;
@@ -431,7 +449,6 @@ public class RequestBuilder {
      *
      * @param name     the http request field name for this file
      * @param filePath the file path
-     * @return
      */
     public RequestBuilder multiPart(String name, String filePath) {
         ensureMultiPart();
@@ -443,5 +460,10 @@ public class RequestBuilder {
         if (this.multiParts == null) {
             this.multiParts = new ArrayList<>();
         }
+    }
+
+    RequestBuilder session(Session session) {
+        this.session = session;
+        return this;
     }
 }

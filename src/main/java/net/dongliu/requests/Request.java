@@ -37,10 +37,13 @@ public class Request {
 
     private final Proxy proxy;
 
+    private final Session session;
+
     Request(Method method, URI url, Parameters parameters, String userAgent, Headers headers,
             InputStream in, List<MultiPart> multiParts, byte[] body, Parameters paramBody,
             AuthInfo authInfo, boolean gzip, boolean verify, Cookies cookies,
-            boolean allowRedirects, int connectTimeout, int socketTimeout, Proxy proxy) {
+            boolean allowRedirects, int connectTimeout, int socketTimeout, Proxy proxy,
+            Session session) {
         this.method = method;
         this.url = url;
         this.parameters = parameters;
@@ -58,7 +61,7 @@ public class Request {
         this.connectTimeout = connectTimeout;
         this.socketTimeout = socketTimeout;
         this.proxy = proxy;
-
+        this.session = session;
     }
 
     public Method getMethod() {
@@ -127,5 +130,9 @@ public class Request {
 
     public Parameters getParamBody() {
         return paramBody;
+    }
+
+    Session getSession() {
+        return session;
     }
 }

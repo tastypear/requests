@@ -61,7 +61,7 @@ public class RequestsTest {
     public void testRedirect() {
         Response<String> resp = Requests.get("http://www.dongliu.net/").text();
         assertEquals(200, resp.getStatusCode());
-        assertEquals(301, resp.getHistory().get(0).getStatusCode());
+        assertEquals("www.dongliu.net", resp.getHistory().get(0).getHost());
     }
 
     @Test
@@ -74,10 +74,10 @@ public class RequestsTest {
 
     @Test
     public void testMultiPart() {
-        Response<String> response = Requests.post("http://10.0.11.48:5000/upload")
-                .multiPart("file", "/Users/dongliu/code/java/requests/src/test/java/net/dongliu/requests/RequestsTest.java")
-                .text();
-        System.out.println(response.getStatusCode());
-        System.out.println(response.getBody());
+//        Response<String> response = Requests.post("http://10.0.11.48:5000/upload")
+//                .multiPart("file", "/Users/dongliu/code/java/requests/src/test/java/net/dongliu/requests/RequestsTest.java")
+//                .text();
+//        System.out.println(response.getStatusCode());
+//        System.out.println(response.getBody());
     }
 }

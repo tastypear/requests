@@ -1,4 +1,4 @@
-package net.dongliu.requests.converter;
+package net.dongliu.requests;
 
 import net.dongliu.requests.struct.Headers;
 import org.apache.http.HttpEntity;
@@ -10,7 +10,7 @@ import java.io.IOException;
  *
  * @author Dong Liu
  */
-public interface ResponseProcessor<T> {
+interface ResponseProcessor<T> {
 
     static ResponseProcessor<String> string = new StringResponseProcessor(null);
 

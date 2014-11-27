@@ -3,6 +3,7 @@ package net.dongliu.requests;
 import net.dongliu.requests.struct.Cookies;
 import net.dongliu.requests.struct.Headers;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,7 +18,7 @@ public class Response<T> {
     private Cookies cookies;
     private T body;
 
-    private List<Response<byte[]>> historyResponses;
+    private List<URI> history;
     private Request request;
 
     Response() {
@@ -59,10 +60,10 @@ public class Response<T> {
     }
 
     /**
-     * redirect history responses.
+     * redirect history urls.
      */
-    public List<Response<byte[]>> getHistory() {
-        return historyResponses;
+    public List<URI> getHistory() {
+        return history;
     }
 
     /**
@@ -76,10 +77,13 @@ public class Response<T> {
         this.request = request;
     }
 
-    void addHistory(Response<byte[]> resp) {
-        if (historyResponses == null) {
-            historyResponses = new ArrayList<>();
-        }
-        historyResponses.add(resp);
+    void setHistory(List<URI> history) {
+        this.history = history;
     }
+//    void addHistory(Response<byte[]> resp) {
+//        if (history == null) {
+//            history = new ArrayList<>();
+//        }
+//        history.add(resp);
+//    }
 }

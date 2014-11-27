@@ -1,5 +1,6 @@
-package net.dongliu.requests.converter;
+package net.dongliu.requests;
 
+import net.dongliu.requests.ResponseProcessor;
 import net.dongliu.requests.struct.Headers;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
@@ -12,7 +13,7 @@ import java.io.*;
  *
  * @author Dong Liu
  */
-final public class FileResponseProcessor implements ResponseProcessor<File> {
+final class FileResponseProcessor implements ResponseProcessor<File> {
     private final File file;
 
     /**

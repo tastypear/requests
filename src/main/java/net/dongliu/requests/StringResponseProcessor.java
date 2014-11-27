@@ -1,4 +1,4 @@
-package net.dongliu.requests.converter;
+package net.dongliu.requests;
 
 import net.dongliu.requests.struct.Headers;
 import org.apache.http.HttpEntity;
@@ -12,7 +12,7 @@ import java.nio.charset.Charset;
  *
  * @author Dong Liu
  */
-final public class StringResponseProcessor implements ResponseProcessor<String> {
+final class StringResponseProcessor implements ResponseProcessor<String> {
     // can be null
     private final Charset charset;
 

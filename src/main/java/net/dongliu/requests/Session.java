@@ -2,67 +2,78 @@ package net.dongliu.requests;
 
 import net.dongliu.requests.exception.InvalidUrlException;
 import net.dongliu.requests.struct.Method;
+import org.apache.http.client.CookieStore;
+import org.apache.http.impl.client.BasicCookieStore;
 
 /**
- * construct and execute http requests
+ * one http session, share cookies across http request.
  *
- * @author Dong Liu
+ * @author Dong Liu dongliu@wandoujia.com
  */
-public class Requests {
+public class Session {
+    private final CookieStore cookieStore;
+
+    Session() {
+        this.cookieStore = new BasicCookieStore();
+    }
+
+    CookieStore getCookieStore() {
+        return cookieStore;
+    }
 
     /**
      * get method
      */
-    public static RequestBuilder get(String url) throws InvalidUrlException {
+    public RequestBuilder get(String url) throws InvalidUrlException {
         return newBuilder(url).method(Method.GET);
     }
 
     /**
      * head method
      */
-    public static RequestBuilder head(String url) throws InvalidUrlException {
+    public RequestBuilder head(String url) throws InvalidUrlException {
         return newBuilder(url).method(Method.HEAD);
     }
 
     /**
      * get url, and return content
      */
-    public static RequestBuilder post(String url) throws InvalidUrlException {
+    public RequestBuilder post(String url) throws InvalidUrlException {
         return newBuilder(url).method(Method.POST);
     }
 
     /**
      * put method
      */
-    public static RequestBuilder put(String url) throws InvalidUrlException {
+    public RequestBuilder put(String url) throws InvalidUrlException {
         return newBuilder(url).method(Method.PUT);
     }
 
     /**
      * delete method
      */
-    public static RequestBuilder delete(String url) throws InvalidUrlException {
+    public RequestBuilder delete(String url) throws InvalidUrlException {
         return newBuilder(url).method(Method.DELETE);
     }
 
     /**
      * options method
      */
-    public static RequestBuilder options(String url) throws InvalidUrlException {
+    public RequestBuilder options(String url) throws InvalidUrlException {
         return newBuilder(url).method(Method.OPTIONS);
     }
 
     /**
      * patch method
      */
-    public static RequestBuilder patch(String url) throws InvalidUrlException {
+    public RequestBuilder patch(String url) throws InvalidUrlException {
         return newBuilder(url).method(Method.PATCH);
     }
 
     /**
      * trace method
      */
-    public static RequestBuilder trace(String url) throws InvalidUrlException {
+    public RequestBuilder trace(String url) throws InvalidUrlException {
         return newBuilder(url).method(Method.TRACE);
     }
 //
@@ -76,15 +87,7 @@ public class Requests {
     /**
      * create request builder with url
      */
-    private static RequestBuilder newBuilder(String url) throws InvalidUrlException {
-        return new RequestBuilder().url(url);
+    private RequestBuilder newBuilder(String url) throws InvalidUrlException {
+        return new RequestBuilder().session(this).url(url);
     }
-
-    /**
-     * create a session. session can do request as Requests do, and keep cookies to maintain a http session
-     */
-    public static Session session() {
-        return new Session();
-    }
-
 }
