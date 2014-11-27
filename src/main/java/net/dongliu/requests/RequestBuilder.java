@@ -47,6 +47,7 @@ public class RequestBuilder {
     private Proxy proxy;
 
     private Session session;
+    private ConnectionPool connectionPool;
 
     RequestBuilder() {
     }
@@ -55,7 +56,7 @@ public class RequestBuilder {
      * get http response for return result with Type T.
      */
     <T> Response<T> client(ResponseProcessor<T> processor) throws RuntimeIOException {
-        return new RequestExecutor<>(build(), processor, session).execute();
+        return new RequestExecutor<>(build(), processor, session, connectionPool).execute();
     }
 
     /**
@@ -125,7 +126,7 @@ public class RequestBuilder {
     Request build() {
         return new Request(method, url, parameters, userAgent, headers, in, multiParts, body,
                 paramBody, authInfo, gzip, verify, cookies, allowRedirects,
-                connectTimeout, socketTimeout, proxy, session);
+                connectTimeout, socketTimeout, proxy);
     }
 
     /**
@@ -467,11 +468,11 @@ public class RequestBuilder {
         return this;
     }
 
-//    /**
-//     * set connection pool. used to reuse http connections.
-//     */
-//    public RequestBuilder connectionPool(ConnectionPool connectionPool) {
-//        this.connectionPool = connectionPool;
-//        return this;
-//    }
+    /**
+     * set connection pool. used to reuse http connections.
+     */
+    public RequestBuilder connectionPool(ConnectionPool connectionPool) {
+        this.connectionPool = connectionPool;
+        return this;
+    }
 }

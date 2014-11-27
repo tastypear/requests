@@ -16,6 +16,7 @@ import org.apache.http.client.methods.*;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLContexts;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
@@ -47,11 +48,14 @@ class RequestExecutor<T> {
     private final ResponseProcessor<T> processor;
 
     private final Session session;
+    private final ConnectionPool connectionPool;
 
-    RequestExecutor(Request request, ResponseProcessor<T> processor, Session session) {
+    RequestExecutor(Request request, ResponseProcessor<T> processor, Session session,
+                    ConnectionPool connectionPool) {
         this.request = request;
         this.processor = processor;
         this.session = session;
+        this.connectionPool = connectionPool;
     }
 
     /**
@@ -88,6 +92,10 @@ class RequestExecutor<T> {
                                                 HttpClientContext context) {
         HttpClientBuilder clientBuilder = HttpClients.custom().setUserAgent(request.getUserAgent());
 
+        if (connectionPool != null) {
+            clientBuilder.setConnectionManager(connectionPool.getConnectionManager());
+        }
+
         // basic auth
         if (request.getAuthInfo() != null) {
             UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(
@@ -103,13 +111,13 @@ class RequestExecutor<T> {
         if (!request.isVerify()) {
             SSLContext sslContext;
             try {
-                sslContext = SSLContext.getInstance("TLS");
+                sslContext = SSLContexts.custom().useTLS().build();
                 sslContext.init(new KeyManager[0], new TrustManager[]{new AllTrustManager()},
                         new SecureRandom());
             } catch (NoSuchAlgorithmException | KeyManagementException e) {
                 throw new RuntimeException(e);
             }
-            SSLContext.setDefault(sslContext);
+            //SSLContext.setDefault(sslContext);
             SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext,
                     SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
             clientBuilder.setSSLSocketFactory(sslsf);
