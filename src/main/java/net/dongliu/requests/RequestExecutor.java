@@ -46,9 +46,12 @@ class RequestExecutor<T> {
     private final Request request;
     private final ResponseProcessor<T> processor;
 
-    RequestExecutor(Request request, ResponseProcessor<T> processor) {
+    private final Session session;
+
+    RequestExecutor(Request request, ResponseProcessor<T> processor, Session session) {
         this.request = request;
         this.processor = processor;
+        this.session = session;
     }
 
     /**
@@ -56,14 +59,15 @@ class RequestExecutor<T> {
      */
     Response<T> execute() throws RuntimeIOException {
         CredentialsProvider provider = new BasicCredentialsProvider();
-        HttpClientContext context = HttpClientContext.create();
-        CookieStore cookieStore;
-        if (request.getSession() != null) {
-            cookieStore = request.getSession().getCookieStore();
+        HttpClientContext context;
+        if (session != null) {
+            context = session.getContext();
         } else {
-            cookieStore = new BasicCookieStore();
+            context = HttpClientContext.create();
+            CookieStore cookieStore = new BasicCookieStore();
+            context.setCookieStore(cookieStore);
         }
-        context.setCookieStore(cookieStore);
+
         HttpRequestBase httpRequest = buildRequest(provider, context);
         try (CloseableHttpClient client = buildHttpClient(provider, context)) {
             // do http request with http client
@@ -162,6 +166,8 @@ class RequestExecutor<T> {
         RequestConfig.Builder configBuilder = RequestConfig.custom()
                 .setConnectTimeout(request.getConnectTimeout())
                 .setSocketTimeout(request.getSocketTimeout())
+                        // we use connect timeout for connection request timeout
+                .setConnectionRequestTimeout(request.getConnectTimeout())
                 .setCookieSpec(CookieSpecs.BROWSER_COMPATIBILITY);
         //proxy
         if (request.getProxy() != null) {

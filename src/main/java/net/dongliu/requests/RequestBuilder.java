@@ -55,7 +55,7 @@ public class RequestBuilder {
      * get http response for return result with Type T.
      */
     <T> Response<T> client(ResponseProcessor<T> processor) throws RuntimeIOException {
-        return new RequestExecutor<>(build(), processor).execute();
+        return new RequestExecutor<>(build(), processor, session).execute();
     }
 
     /**
@@ -466,4 +466,12 @@ public class RequestBuilder {
         this.session = session;
         return this;
     }
+
+//    /**
+//     * set connection pool. used to reuse http connections.
+//     */
+//    public RequestBuilder connectionPool(ConnectionPool connectionPool) {
+//        this.connectionPool = connectionPool;
+//        return this;
+//    }
 }

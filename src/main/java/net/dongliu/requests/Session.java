@@ -2,23 +2,25 @@ package net.dongliu.requests;
 
 import net.dongliu.requests.exception.InvalidUrlException;
 import net.dongliu.requests.struct.Method;
-import org.apache.http.client.CookieStore;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.impl.client.BasicCookieStore;
 
 /**
- * one http session, share cookies across http request.
+ * one http session, share cookies, basic auth across http request.
  *
  * @author Dong Liu dongliu@wandoujia.com
  */
 public class Session {
-    private final CookieStore cookieStore;
+    private final HttpClientContext context;
 
     Session() {
-        this.cookieStore = new BasicCookieStore();
+        context = HttpClientContext.create();
+        BasicCookieStore cookieStore = new BasicCookieStore();
+        context.setCookieStore(cookieStore);
     }
 
-    CookieStore getCookieStore() {
-        return cookieStore;
+    HttpClientContext getContext() {
+        return context;
     }
 
     /**
