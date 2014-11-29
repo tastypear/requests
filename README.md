@@ -154,4 +154,15 @@ Session session = Requests.session();
 Response<String> resp1 = session.get(url1).text();
 Response<String> resp2 = session.get(url2).text();
 ```
-
+##Connection Pool
+Request(and Session) can share one connection pool to reuse http connections.
+```java
+ConnectionPool connectionPool = ConnectionPool.custom().verify(false)
+       .maxPerRoute(20)
+       .maxTotal(100)
+       .build();
+Response<String> resp1 = Requests.get(url1).connectionPool(connectionPool).text();
+Response<String> resp2 = Requests.get(url2).connectionPool(connectionPool).text();
+connectionPool.close();
+```
+Note that you need to close connection pool manaully when do not need it any more.
