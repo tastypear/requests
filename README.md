@@ -46,9 +46,9 @@ Response<File> resp2 = Requests.get(url).file("/path/to/save/file");
 ```
 or you can custom http response processor your self:
 ```java
-Response<Json> resp1 = Requests.get(url).client(new ResponseProcessor<Json>() {
+Response<String> resp = Requests.get(url).handler(new ResponseHandler<String>() {
     @Override
-    public Json convert(int statusCode, Headers headers, HttpEntity httpEntity) throws IOException {
+    public String handle(int statusCode, Headers headers, InputStream in) throws IOException {
         return null;
     }
 });
@@ -140,9 +140,11 @@ Response<String> resp = Requests.get("http://www.baidu.com/")
         .text();
 ```
 The proxy string param looks like:
+```
 * http://127.0.0.1:7890/                           # http proxy
 * https://127.0.0.1:7890/                          # https proxy
 * http://username:password@127.0.0.1:7890/         # http proxy with auths
+```
 ##Exceptions
 Requests wrapped checked exceptions into runtime exception, RuntimeIOException, InvalidUrlException, IllegalEncodingException. Catch this if you mind.
 ## Session
@@ -152,3 +154,4 @@ Session session = Requests.session();
 Response<String> resp1 = session.get(url1).text();
 Response<String> resp2 = session.get(url2).text();
 ```
+
