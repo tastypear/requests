@@ -118,3 +118,37 @@ resp = Requests.get(url).timeout(30_1000, 30_1000).text();
 ```
 You may not need to know, but Requests also use connect timeout as the timeout value get connection from connection pool if connection pool is used.
 ##Gzip
+Requests send Accept-Encoding: gzip, deflate, and handle gzipped response in default. You can disable this by:
+```java
+Response<String> resp = Requests.get(url).gzip(false).text();
+```
+##Https Verification
+Some https sites do not have trusted http certificate, Exception will be throwed when request. You can disable https certificate verify by:
+```java
+Response<String> resp = Requests.get(url).verify(false).text();
+```
+##Basic Auth
+Set http basic auth param by auth method:
+```java
+Response<String> resp = Requests.get(url).auth("user", "passwd").verify(false).text();
+```
+##Proxy
+Set proxy by proxy method:
+```java
+Response<String> resp = Requests.get("http://www.baidu.com/")
+        .proxy("http://127.0.0.1:8000/")
+        .text();
+```
+The proxy string param looks like:
+* http://127.0.0.1:7890/                           # http proxy
+* https://127.0.0.1:7890/                          # https proxy
+* http://username:password@127.0.0.1:7890/         # http proxy with auths
+##Exceptions
+Requests wrapped checked exceptions into runtime exception, RuntimeIOException, InvalidUrlException, IllegalEncodingException. Catch this if you mind.
+## Session
+Session keep cookies and basic auto cache and other http context for you, useful when need login or other situations.Session have exactly the same usage as Requests.
+```java
+Session session = Requests.session();
+Response<String> resp1 = session.get(url1).text();
+Response<String> resp2 = session.get(url2).text();
+```
