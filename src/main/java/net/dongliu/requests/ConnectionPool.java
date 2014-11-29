@@ -2,25 +2,16 @@ package net.dongliu.requests;
 
 import net.dongliu.requests.struct.Host;
 import net.dongliu.requests.struct.Pair;
+import net.dongliu.requests.struct.Proxy;
 import org.apache.http.HttpHost;
 import org.apache.http.config.Registry;
-import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.HttpClientConnectionManager;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
-import org.apache.http.conn.socket.PlainConnectionSocketFactory;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.conn.ssl.SSLContexts;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
 import java.io.Closeable;
 import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -35,8 +26,9 @@ public class ConnectionPool implements Closeable {
 
     private final PoolingHttpClientConnectionManager manager;
 
-    public ConnectionPool(PoolingHttpClientConnectionManager manager) {
+    public ConnectionPool(PoolingHttpClientConnectionManager manager, Proxy proxy) {
         this.manager = manager;
+        this.proxy = proxy;
     }
 
     /**
@@ -46,12 +38,18 @@ public class ConnectionPool implements Closeable {
         return new ConnectionPoolBuilder();
     }
 
+    private final Proxy proxy;
+
     @Override
     public void close() throws IOException {
         manager.close();
     }
 
-    HttpClientConnectionManager getConnectionManager() {
+    Proxy getProxy() {
+        return proxy;
+    }
+
+    HttpClientConnectionManager wrappedConnectionManager() {
         return new ConnectionManagerWrapper(manager);
     }
 
@@ -66,35 +64,16 @@ public class ConnectionPool implements Closeable {
         private List<Pair<Host, Integer>> perRouteCount;
         // if verify http certificate
         private boolean verify = true;
+        private Proxy proxy;
 
         ConnectionPoolBuilder() {
         }
 
         public ConnectionPool build() {
-            PoolingHttpClientConnectionManager manager;
-
-            // trust all http certificate
-            if (!verify) {
-                SSLContext sslContext;
-                try {
-                    sslContext = SSLContexts.custom().useTLS().build();
-                    sslContext.init(new KeyManager[0], new TrustManager[]{new AllTrustManager()},
-                            new SecureRandom());
-                } catch (NoSuchAlgorithmException | KeyManagementException e) {
-                    throw new RuntimeException(e);
-                }
-                //SSLContext.setDefault(sslContext);
-                SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext,
-                        SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-                Registry<ConnectionSocketFactory> r = RegistryBuilder.<ConnectionSocketFactory>create()
-                        .register("http", PlainConnectionSocketFactory.getSocketFactory())
-                        .register("https", sslsf)
-                        .build();
-                manager = new PoolingHttpClientConnectionManager(r, null, null, null, timeToLive,
-                        TimeUnit.MILLISECONDS);
-            } else {
-                manager = new PoolingHttpClientConnectionManager(timeToLive, TimeUnit.MILLISECONDS);
-            }
+            Registry<ConnectionSocketFactory> r = Utils.getConnectionSocketFactoryRegistry(proxy,
+                    verify);
+            PoolingHttpClientConnectionManager manager = new PoolingHttpClientConnectionManager(r,
+                    null, null, null, timeToLive, TimeUnit.MILLISECONDS);
 
             manager.setMaxTotal(maxTotal);
             manager.setDefaultMaxPerRoute(maxPerRoute);
@@ -106,8 +85,9 @@ public class ConnectionPool implements Closeable {
                             pair.getValue());
                 }
             }
-            return new ConnectionPool(manager);
+            return new ConnectionPool(manager, proxy);
         }
+
 
         /**
          * how long http connection keep, in milliseconds. default -1, get from server response
@@ -154,6 +134,11 @@ public class ConnectionPool implements Closeable {
             if (this.perRouteCount == null) {
                 this.perRouteCount = new ArrayList<>();
             }
+        }
+
+        private ConnectionPoolBuilder proxy(Proxy proxy) {
+            this.proxy = proxy;
+            return this;
         }
     }
 }

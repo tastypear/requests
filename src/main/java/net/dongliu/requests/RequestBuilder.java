@@ -300,38 +300,10 @@ public class RequestBuilder {
     }
 
     /**
-     * set http proxy, will ignore null parameter. examples:
-     * <pre>
-     *     http://127.0.0.1:7890/
-     *     https://127.0.0.1:7890/
-     *     http://username:password@127.0.0.1:7890/
-     * </pre>
-     * TODO: socket proxy
+     * set proxy
      */
-    public RequestBuilder proxy(String proxyUrl) throws InvalidUrlException {
-        if (proxyUrl == null) {
-            return null;
-        }
-        URI uri;
-        try {
-            uri = new URI(proxyUrl);
-        } catch (URISyntaxException e) {
-            throw InvalidUrlException.of(e);
-        }
-        String userInfo = uri.getUserInfo();
-        Proxy proxy = new Proxy();
-        proxy.setHost(uri.getHost());
-        proxy.setPort(uri.getPort());
-        proxy.setScheme(uri.getScheme());
-        if (userInfo != null) {
-            String[] items = userInfo.split(":");
-            String userName = items[0];
-            String password = items[1];
-            AuthInfo authInfo = new AuthInfo(userName, password);
-            proxy.setAuthInfo(authInfo);
-        }
+    public RequestBuilder proxy(Proxy proxy) throws InvalidUrlException {
         this.proxy = proxy;
-
         return this;
     }
 

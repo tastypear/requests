@@ -1,6 +1,7 @@
 package net.dongliu.requests;
 
 import net.dongliu.requests.struct.Parameter;
+import net.dongliu.requests.struct.Proxy;
 import org.apache.commons.io.Charsets;
 import org.junit.Test;
 
@@ -66,10 +67,14 @@ public class RequestsTest {
 
     @Test
     public void testProxy() {
-//        Response<String> resp = Requests.string().url("http://www.baidu.com/")
-//                .proxy("http://127.0.0.1:8000/")
-//                .get();
+//        Response<String> resp = Requests.get("http://www.baidu.com/")
+//                .proxy(Proxy.httpProxy("127.0.0.1", 8000))
+//                .text();
 //        assertEquals(200, resp.getStatusCode());
+//        Response<String> resp1 = Requests.get("http://www.baidu.com/")
+//                .proxy(Proxy.socketProxy("127.0.0.1", 1080))
+//                .text();
+//        assertEquals(200, resp1.getStatusCode());
     }
 
     @Test

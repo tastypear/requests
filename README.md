@@ -136,14 +136,19 @@ Response<String> resp = Requests.get(url).auth("user", "passwd").verify(false).t
 Set proxy by proxy method:
 ```java
 Response<String> resp = Requests.get("http://www.baidu.com/")
-        .proxy("http://127.0.0.1:8000/")
+        .proxy(Proxy.httpProxy("127.0.0.1", 8080))
         .text();
 ```
-The proxy string param looks like:
-```
-* http://127.0.0.1:7890/                           # http proxy
-* https://127.0.0.1:7890/                          # https proxy
-* http://username:password@127.0.0.1:7890/         # http proxy with auths
+The proxy can be created by:
+```java
+//http proxy
+Proxy.httpProxy("127.0.0.1", 8080)
+//https proxy
+Proxy.httpsProxy("127.0.0.1", 8080)
+//socket proxy
+Proxy.httpsProxy("127.0.0.1", 5678)
+//with auth
+Proxy.httpProxy("127.0.0.1", 8080, userName, password)
 ```
 ##Exceptions
 Requests wrapped checked exceptions into runtime exception, RuntimeIOException, InvalidUrlException, IllegalEncodingException. Catch this if you mind.
@@ -160,9 +165,12 @@ Request(and Session) can share one connection pool to reuse http connections.
 ConnectionPool connectionPool = ConnectionPool.custom().verify(false)
        .maxPerRoute(20)
        .maxTotal(100)
+       //.proxy(...)
        .build();
 Response<String> resp1 = Requests.get(url1).connectionPool(connectionPool).text();
 Response<String> resp2 = Requests.get(url2).connectionPool(connectionPool).text();
 connectionPool.close();
 ```
-Note that you need to close connection pool manaully when do not need it any more.
+Note:
+* you need to close connection pool manually when do not need it any more.
+* if connection pool is used, you should set verify and proxy use ConnectionPoolBuilder, the connection pool's (verify, proxy) settings will override requests' settings.

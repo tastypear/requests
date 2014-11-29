@@ -15,25 +15,20 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.*;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.conn.ssl.SSLContexts;
+import org.apache.http.config.Registry;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.*;
+import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
 import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.http.message.BasicNameValuePair;
 
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -93,7 +88,12 @@ class RequestExecutor<T> {
         HttpClientBuilder clientBuilder = HttpClients.custom().setUserAgent(request.getUserAgent());
 
         if (connectionPool != null) {
-            clientBuilder.setConnectionManager(connectionPool.getConnectionManager());
+            clientBuilder.setConnectionManager(connectionPool.wrappedConnectionManager());
+        } else {
+            Registry<ConnectionSocketFactory> reg = Utils.getConnectionSocketFactoryRegistry(
+                    request.getProxy(), request.isVerify());
+            BasicHttpClientConnectionManager manager = new BasicHttpClientConnectionManager(reg);
+            clientBuilder.setConnectionManager(manager);
         }
 
         // basic auth
@@ -106,22 +106,6 @@ class RequestExecutor<T> {
         }
 
         clientBuilder.setDefaultCredentialsProvider(provider);
-
-        // accept all https
-        if (!request.isVerify()) {
-            SSLContext sslContext;
-            try {
-                sslContext = SSLContexts.custom().useTLS().build();
-                sslContext.init(new KeyManager[0], new TrustManager[]{new AllTrustManager()},
-                        new SecureRandom());
-            } catch (NoSuchAlgorithmException | KeyManagementException e) {
-                throw new RuntimeException(e);
-            }
-            //SSLContext.setDefault(sslContext);
-            SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext,
-                    SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-            clientBuilder.setSSLSocketFactory(sslsf);
-        }
 
         // disable gzip
         if (!request.isGzip()) {
@@ -177,15 +161,18 @@ class RequestExecutor<T> {
                         // we use connect timeout for connection request timeout
                 .setConnectionRequestTimeout(request.getConnectTimeout())
                 .setCookieSpec(CookieSpecs.BROWSER_COMPATIBILITY);
-        //proxy
-        if (request.getProxy() != null) {
-            //TODO: socket proxy support
-            Proxy proxy = request.getProxy();
+
+        //proxy. connection proxy settings override request proxy
+        Proxy proxy = connectionPool == null ? request.getProxy() : connectionPool.getProxy();
+        if (proxy != null && (proxy.getScheme() == Proxy.Scheme.http
+                || proxy.getScheme() == Proxy.Scheme.https)) {
+            //http or https proxy
             if (proxy.getAuthInfo() != null) {
                 provider.setCredentials(new AuthScope(proxy.getHost(), proxy.getPort()),
                         new UsernamePasswordCredentials(proxy.getUserName(), proxy.getPassword()));
             }
-            HttpHost httpHost = new HttpHost(proxy.getHost(), proxy.getPort(), proxy.getScheme());
+            HttpHost httpHost = new HttpHost(proxy.getHost(), proxy.getPort(),
+                    proxy.getScheme().name());
             configBuilder.setProxy(httpHost);
         }
         httpRequest.setConfig(configBuilder.build());
