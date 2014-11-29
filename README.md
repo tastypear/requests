@@ -48,7 +48,8 @@ or you can custom http response processor your self:
 ```java
 Response<String> resp = Requests.get(url).handler(new ResponseHandler<String>() {
     @Override
-    public String handle(int statusCode, Headers headers, InputStream in) throws IOException {
+    public String handle(int statusCode, Headers headers, InputStream in)
+            throws IOException {
         return null;
     }
 });
