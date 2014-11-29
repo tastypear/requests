@@ -60,7 +60,10 @@ You can pass parameters in urls use param or params method:
 Map<String, Object> params = new HashMap<>();
 params.put("k1", "v1");
 params.put("k2", "v2");
-Response<String> resp = Requests.get(url).param("key1", "value1").params(params).text();
+Response<String> resp = Requests.get(url)
+        .param("key1", "value1").params(params)
+        //.params(new Parameter(...), new Parameter(...))
+        .text();
 ```
 ##Custom Headers
 Http request headers can be set by header or headers method:
@@ -68,7 +71,21 @@ Http request headers can be set by header or headers method:
 Map<String, Object> headers = new HashMap<>();
 headers.put("k1", "v1");
 headers.put("k2", "v2");
-Response<String> resp = Requests.get(url).header("key1", "value1").headers(headers).text();
+Response<String> resp = Requests.get(url)
+        .header("key1", "value1").headers(headers)
+        //.headers(new Header(...), new Header(...))
+        .text();
+```
+##Cookies
+Cookies can be add by::
+```java
+Map<String, Object> cookies = new HashMap<>();
+cookies.put("k1", "v1");
+cookies.put("k2", "v2");
+Response<String> resp = Requests.get(url)
+        .cookie("key1", "value1").cookies(cookies)
+        //.cookies(new Cookie(...), new Cookie(...))
+        .text();
 ```
 ##UserAgent
 A convenient method to set userAgent:
